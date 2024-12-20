@@ -134,14 +134,15 @@
             <script src="static/js/polyline.js"></script>
 
             <script>
-                /*
+                
                 var map = L.map('map').setView([-7.614529, 110.712247], 8); // Inisialisasi peta
                 
                 // Tambahkan layer OpenStreetMap
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
                 
-                var route_data = {{ route_data|tojson }}; // Dapatkan data route (rute TSP)
+                var route_data = {{ route_data|tojson }}; // Dapatkan data route (rute TSP)*/
                 var selected_customers = {{ selected_customers|tojson }}; // Dapatkan data pelanggan yang dipilih
+                
                 var orderedCoordinates = {{ ordered_coordinates | tojson }};
                 var segmentDistances = {{ nearest_neighbor_table | tojson }};
                 console.log(orderedCoordinates);
@@ -206,8 +207,9 @@
                             }).addTo(map);
                         });
                         
-                        */
+                    
                         // Menampilkan ringkasan urutan rute di dalam tabel
+                        
                         var routeSummary = '<h3>Ringkasan Urutan Rute</h3><table class="table table-striped"><thead><tr><th>Urutan</th><th>Nama Customer</th><th>Nama Perusahaan</th></tr></thead><tbody>';
                         
                         selected_customers.forEach(function(customer, index) {
@@ -274,7 +276,7 @@
     </script>
     <script>
         document.querySelector('form').addEventListener('submit', function(event) {
-            const selectedCustomers = document.querySelectorAll('input[name="customers[]"]:checked');
+            const selectedCustomers = document.querySelectorAll('input[name="selected_customers"]:checked');
             let selectedValues = [];
             selectedCustomers.forEach(function(checkbox) {
                 selectedValues.push(checkbox.value);

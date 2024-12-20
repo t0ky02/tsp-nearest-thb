@@ -296,7 +296,7 @@ def tsp():
 
     if request.method == 'POST':
         selected_driver = request.form.get('selected_driver')
-        selected_customers = request.form.getlist('customers')  # List of customer IDs
+        selected_customers = request.form.getlist('selected_customers')  # List of customer IDs
         print(f"Selected Customers: {selected_customers}")
         print(f"Selected Driver: {selected_driver}")
         if not selected_driver or not selected_customers:
@@ -304,7 +304,7 @@ def tsp():
 
         # Ambil data customer yang dipilih
         selected_customers = [c for c in customers if str(c[0]) in selected_customers]
-        coordinates = [(float(c[3]), float(c[4])) for c in selected_customers]
+        coordinates = [(float(c[7]), float(c[8])) for c in selected_customers]
 
         # Membuat matriks jarak
         distance_matrix = build_actual_distance_matrix(selected_customers)
@@ -324,14 +324,14 @@ def tsp():
         cursor = mysql.connection.cursor()
         for customer in selected_customers:
             cursor.execute("""
-                INSERT INTO route (driver_id, customer_id, route_details, total_distance)
+                INSERT INTO route (driver_id, customer_id, total_distance, route_data)
                 VALUES (%s, %s, %s, %s)
-            """, (selected_driver, customer[0], jsonify(route_details), route_details['total_distance']))
+            """, (selected_driver, customer[0], route_details['total_distance'], str(route_details)))
         mysql.connection.commit()
         cursor.close()
         
         flash('Route successfully created and saved!', 'success')
-        return redirect(url_for('driver_routes'))
+        return redirect(url_for('tsp'))
 
     return render_template(
         'tsp.html',
@@ -406,5 +406,5 @@ def driver_routes():
 
     return render_template('driver_routes.html', routes=routes, navbar=navbar_driver)
 
-    if __name__ == '__main__':
-        app.run(debug=True)
+if __name__ == '__main__':
+    app.run(debug=True)
