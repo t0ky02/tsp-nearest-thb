@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <style>
+        .a{
+            background: #0bfefb;
+        }
+    </style>
+</head>
+<body>
+    <div id="chart"></div>
+
+    <script type="text/javascript">
+        function goChart(dataArr){
+            let backingStore, ratio;
+            // 声明所需变量
+            let canvas,ctx;
+            let height = 600, width = 900;
+            // 图表属性
+            let cWidth, cHeight, cMargin, cSpace;
+            let originX, originY;
+            // 折线图属性
+            let tobalDots, dotSpace, maxValue;
+            let totalYNomber;
+
+            let dotIndex; //折线标记点的序号
+
+            let dotArr = [];
+
+            let clearPlot;
+
+            // 运动相关变量
+            let isAnimate = true;
+            let ctr, numctr, speed;
+
+            // 获得canvas上下文
+            let rootElement = document.getElementById("chart");
+            canvas = document.createElement("canvas");
+            canvas.innerHTML = '你的浏览器不支持HTML5 canvas'
+            rootElement.appendChild(canvas)
+            if(canvas && canvas.getContext){
+                ctx = canvas.getContext("2d");
+                backingStore = ctx.backingStorePixelRatio ||
+                ctx.webkitBackingStorePixelRatio ||
+                ctx.mozBackingStorePixelRatio ||
+                ctx.msBackingStorePixelRatio ||
+                ctx.oBackingStorePixelRatio ||
+                ctx.backingStorePixelRatio || 1;
+                ratio = (window.devicePixelRatio || 1) / backingStore;
+                // ratio = 2
+                // ctx.scale(2, 2)
+            }
+            initChart(); // 图表初始化
+            drawLineLabelMarkers(); // 绘制图表轴、标签和标记
+            drawLineAnimate(); // 绘制折线图的动画
+
+            //点击刷新图表
+            // canvas.onclick = function(){
+            //     initChart(); // 图表初始化
+            //     drawLineLabelMarkers(); // 绘制图表轴、标签和标记
+            //     drawLineAnimate(); // 绘制折线图的动画
+            // };
+
+            // 图表初始化
+            function initChart(){
+                // 图表信息
+
+                cMargin = 0*ratio;
+                cSpace = 50*ratio;
+                /*这里是对高清屏幕的处理，
+                     方法：先将canvas的width 和height设置成本来的两倍
+                     然后将style.height 和 style.width设置成本来的宽高
+                     这样相当于把两倍的东西缩放到原来的 1/2，这样在高清屏幕上 一个像素的位置就可以有两个像素的值
+                     这样需要注意的是所有的宽高间距，文字大小等都得设置成原来的两倍才可以。
+                */
+                canvas.width = width*ratio ;
+                canvas.height = height *ratio ;
+                canvas.style.height = canvas.height/ ratio + "px";
+                canvas.style.width = canvas.width/ ratio + "px";
+                clearPlot = 200;
+                cHeight = canvas.height - cMargin - cSpace;
+                cWidth = canvas.width - cMargin - cSpace - 30;
+                originX = cMargin + cSpace;//坐标原点在canvas画布上的x坐标
+                originY = cMargin + cHeight;//坐标原点在canvas画布上的y坐标
+
+                // 折线图信息
+                tobalDots = dataArr.length;
+                dotSpace = cWidth/(tobalDots - 1);//横坐标间距
+                maxValue = dataArr.reduce((prev, curr)=>{
+                   return prev[1] > curr[1] ? prev: curr;
+                })[1];
+                maxValue += 50;//最大纵坐标值与最大数据值有50的余量
+                clearPlot =originY -  (clearPlot / maxValue) * cHeight;
+                totalYNomber = 10//纵坐标
+
+                // 运动相关
+                ctr = 5;
+                numctr = 100;
+                speed = 30;
+                ctx.translate(0.5*ratio, 0.5*ratio);  // 当只绘制1像素的线的时候，坐标点需要偏移，这样才能画出1像素实线
+            }
+
+            // 绘制图表轴、标签和标记
+            function drawLineLabelMarkers(){
+                ctx.font = 12*ratio + "px Arial";
+                ctx.lineWidth = 1*ratio;
+                ctx.fillStyle = "#566a80";
+                ctx.strokeStyle = "#566a80";
+                // y轴线
+                drawLine(originX, originY, originX, cMargin);
+                // x轴线
+                drawLine(originX, originY, originX+cWidth, originY);
+
+                // 绘制标记
+                drawMarkers();
+                ctx.lineWidth = 1*ratio;
+            }
+
+            // 画线的方法
+            function drawLine(x, y, X, Y){
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(X, Y);
+                ctx.stroke();
+                ctx.closePath();
+            }
+
+            // 绘制标记
+            function drawMarkers(){
+                ctx.strokeStyle = "#E0E0E0";
+                // 绘制 y 轴标记 及中间横线
+                let oneVal = parseInt(maxValue/totalYNomber);//y轴基本刻度
+                ctx.textAlign = "right";
+                for(let i=0; i<=totalYNomber; i++){
+                    let markerVal =  i*oneVal;
+                    let xMarker = originX-5*ratio;
+                    let yMarker = parseInt( cHeight*(1-markerVal/maxValue) ) + cMargin;
+
+                    ctx.fillText(markerVal, xMarker, yMarker+5*ratio, cSpace); // 文字
+                    if(i>0){
+                        ctx.lineWidth = 1*ratio;
+                        drawLine(originX+2*ratio, yMarker, originX+cWidth, yMarker);//中间横线
+                    }
+                }
+
+                // 绘制 x 轴标记 及中间竖线
+                ctx.textAlign = "center";
+                let num = Math.ceil(75*ratio / dotSpace);//x轴坐标显示间隔最少100px
+                for(let i=0; i<tobalDots; i++){
+                    if(i%num!==parseInt(num / 2)) continue;
+                    let markerVal = dataArr[i][0];
+                    let xMarker = originX+i*dotSpace;
+                    let yMarker = originY+20*ratio;
+                    ctx.fillText(markerVal, xMarker, yMarker); // 文字
+                    // if(i>0){
+                    //     drawLine(xMarker, originY-2, xMarker, cMargin);
+                    // }
+                }
+
+                // 绘制标题 y
+                // ctx.save();
+                // ctx.rotate(-Math.PI/2);
+                // ctx.fillText("访问量", -canvas.height/2, originX-50*ratio);
+                // ctx.restore();//获取save时的设置
+                // 绘制标题 x
+                ctx.fillText("月份", originX+cWidth/2, originY+cSpace/2+20*ratio);
+            };
+
+            //绘制折线图
+            function drawLineAnimate(){
+                ctx.strokeStyle = "orange";  //"#49FE79";
+                ctx.lineWidth = 2*ratio;
+                //连线
+                ctx.beginPath();
+                for(let i=0; i<tobalDots; i++){
+                    let dotVal = dataArr[i][1];
+                    let barH = parseInt( cHeight*dotVal/maxValue* ctr/numctr );//y轴一次绘制ctr/numctr(设置动画初始百分比率)
+                    let y = originY - barH;
+                    let x = originX + dotSpace*i;
+                    if(i==0){
+                        ctx.moveTo( x, y );
+                    }else{
+                        ctx.lineTo( x, y );
+                    }
+                }
+                ctx.stroke();
+
+
+                //背景
+                ctx.lineTo( originX+dotSpace*(tobalDots-1), originY);
+                ctx.lineTo( originX, originY);
+                //背景渐变色
+                //柱状图渐变色
+                let gradient = ctx.createLinearGradient(originX, originY, originX, cMargin);
+                gradient.addColorStop(0, 'rgba(255,165,0,0.01)');
+                gradient.addColorStop(1, 'rgba(255,165,0,0.6)');
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                ctx.closePath();
+                ctx.fillStyle = "#566a80";
+                // 绘制清盘线
+                drawDottedX(originX, clearPlot, originX+cWidth, clearPlot)
+                ctx.strokeStyle = "#EEEEEE";
+                ctx.strokeRect(originX+cWidth-48*ratio, clearPlot, 48*ratio, 20*ratio);
+                ctx.fillStyle = "#EEEEEE";
+                ctx.fillRect(originX+cWidth-48*ratio, clearPlot+1, 48*ratio, 20*ratio);
+                ctx.fillStyle = "#999999";
+                ctx.font = 12*ratio + "px Arial";
+                ctx.fillText('清盘线', originX+cWidth-24*ratio, clearPlot+15*ratio); // 文字
+
+
+                //绘制点
+                if(dotIndex) {
+                    drawDottedY(dotArr[dotIndex-1][0], originY, dotArr[dotIndex-1][0], cMargin)
+                    drawArc( dotArr[dotIndex-1][0], dotArr[dotIndex-1][1] );  //绘制点
+                    ctx.fillStyle = "orange";
+                    ctx.fillText(dataArr[dotIndex-1][1], dotArr[dotIndex-1][0]+10, dotArr[dotIndex-1][1]-2); // 文字
+                }
+                // for(let i=0; i<tobalDots; i++){
+                //     let dotVal = dataArr[i][1];
+                //     let barH = parseInt( cHeight*dotVal/maxValue * ctr/numctr );
+                //     let y = originY - barH;
+                //     let x = originX + dotSpace*i;
+                //     drawArc( x, y );  //绘制点
+                //     ctx.fillStyle = "orange";
+                //     ctx.fillText(parseInt(dotVal*ctr/numctr), x+20, y-8); // 文字
+                // }
+                if(!isAnimate) return
+                if(ctr<numctr){
+                    ctr += 6;
+                    setTimeout(function(){
+                        ctx.clearRect(0,0,canvas.width, canvas.height);
+                        drawLineLabelMarkers();
+                        drawLineAnimate();
+                    }, speed);
+                }
+                if(ctr>=numctr){
+                    isAnimate = false;
+                    ctr = numctr;
+                    for(let i=0; i<tobalDots; i++){
+                        let dotVal = dataArr[i][1];
+                        let barH = parseInt( cHeight*dotVal/maxValue);
+                        let y = originY - barH;
+                        let x = originX + dotSpace*i;
+                        dotArr.push([x, y])
+                        // drawArc( x, y );  //绘制点
+                        // ctx.fillStyle = "orange";
+                        // ctx.fillText(parseInt(dotVal*ctr/numctr), x+20, y-8); // 文字
+                    }
+                    canvas.onmousemove=function(e){
+                        if(e.offsetX*ratio <= originX || e.offsetY >= originY || e.offsetX*ratio >= originX+cWidth || e.offsetY <= cMargin) return;
+                        let index = Math.round((e.offsetX*ratio - originX) / dotSpace) + 1
+                        if(index!== dotIndex) {
+                            dotIndex = index;
+                            ctx.clearRect(0,0,canvas.width, canvas.height);
+                            drawLineLabelMarkers();
+                            drawLineAnimate();
+
+                        }
+                    }
+                }
+            }
+
+            //绘制圆点
+            function drawArc( x, y ){
+                ctx.fillStyle = "orange";
+                ctx.beginPath();
+                ctx.arc( x, y, 5*ratio, 0, Math.PI*2*ratio );
+                ctx.fill();
+                ctx.closePath();
+
+                ctx.fillStyle = "#FFFFFF";
+                ctx.beginPath();
+                ctx.arc( x, y, 3*ratio, 0, Math.PI*2*ratio );
+                ctx.fill();
+                ctx.closePath();
+            }
+
+            function drawDottedY( x, y, X, Y ){
+                ctx.lineWidth = 1 *ratio;
+                ctx.strokeStyle = "orange";
+                let length = cHeight / (7*ratio);
+                for(i=0; i<length; i++){
+                    if(i%2 === 1 || x===originX) continue;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y + (Y-y)*i / length);
+                    ctx.lineTo(X, y + (Y-y)*(i+1) / length);
+                    ctx.stroke();
+                    ctx.closePath();
+                }
+            }
+            function drawDottedX( x, y, X, Y ){
+                ctx.strokeStyle = "green";
+                ctx.lineWidth = 1 *ratio;
+                let length = cWidth / (2*ratio);
+                for(i=0; i<length; i++){
+                    if(i%2 === 1) continue;
+                    ctx.beginPath();
+                    ctx.moveTo(x + (X-x)*i / length, y);
+                    ctx.lineTo(x + (X-x)*(i+1) / length, y);
+                    ctx.stroke();
+                    ctx.closePath();
+                }
+            }
+        }
+
+        let chartData = [["2000-06-05",116],["2000-06-06",129],["2000-06-07",135],["2000-06-08",86],["2000-06-09",73],["2000-06-10",85],["2000-06-11",73],["2000-06-12",68],["2000-06-13",92],["2000-06-14",130],["2000-06-15",245],["2000-06-16",139],["2000-06-17",115],["2000-06-18",111],["2000-06-19",309],["2000-06-20",206],["2000-06-21",137],["2000-06-22",128],["2000-06-23",85],["2000-06-24",94],["2000-06-25",71],["2000-06-26",106],["2000-06-27",84],["2000-06-28",93],["2000-06-29",85],["2000-06-30",73],["2000-07-01",83],["2000-07-02",125],["2000-07-03",107],["2000-07-04",82],["2000-07-05",44],["2000-07-06",72],["2000-07-07",106],["2000-07-08",107],["2000-07-09",66],["2000-07-10",91],["2000-07-11",92],["2000-07-12",113],["2000-07-13",107],["2000-07-14",131],["2000-07-15",111],["2000-07-16",64],["2000-07-17",69],["2000-07-18",88],["2000-07-19",77],["2000-07-20",83],["2000-07-21",111],["2000-07-22",57],["2000-07-23",55]];
+        // let chartData = [["2000-06-05",116],["2000-06-06",116]];
+        goChart(chartData);
+
+
+    </script>
+</body>
+</html>

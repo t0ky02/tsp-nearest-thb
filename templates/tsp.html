@@ -1,0 +1,288 @@
+    <!DOCTYPE html>
+    <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+            <!-- Favicons -->
+            <link href="assets/img/favicon.png" rel="icon">
+            <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+            <!-- Google Fonts -->
+            <link href="https://fonts.gstatic.com" rel="preconnect">
+            <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+
+            <!-- Custom CSS -->
+            <link href="static/css/style.css" rel="stylesheet">
+
+            <!-- Vendor CSS Files -->
+            <link href="static/bootstrap5/css/bootstrap.min.css" rel="stylesheet">
+
+            <!-- Leaflet CSS for Map -->
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+            <link rel="stylesheet" href="static/css/tsp.css">
+            <script src="static/js/main.js"></script>
+            <!-- Title -->
+            <title>TSP - PT. Tunas Harapan Baru</title>
+        </head>
+        <body>
+            {{navbar|safe}}
+            <main id="main" class="main">
+                <div class="pagetitle">
+                    <h1>Travelling Salesman Problem</h1>
+                    <nav>
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="/index">Home</a></li>
+                            <li class="breadcrumb-item active">Travelling Salesman Problem</li>
+                        </ol>
+                    </nav>
+                </div><!-- End Page Title -->
+
+
+                <!-- Form untuk memilih customer -->
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <form method="POST" action="/tsp">
+                                <h3>Daftar Pelanggan</h3>
+                                <table class="table table-striped table-bordered" id="customerTable">
+                                    <label for="driver">Pilih Driver:</label>
+                                    <select name="selected_driver" id="driver" class="form-select" required>
+                                        {% for driver in drivers %}
+                                        <option value="{{ driver[0] }}">{{ driver[1] }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <thead>
+                                        <tr>
+                                            <th>Pilih Customer</th>
+                                            <th><a href="javascript:void(0);" onclick="sortTable()" style="text-decoration: none;">Tanggal Kirim</a></th>
+                                            <th>Tanggal Input</th>  
+                                            <th>Nama Customer</th>
+                                            <th>Nama Perusahaan</th>
+                                            <th>No Telp</th>
+                                            <th>Alamat</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for customer in customers %}
+                                        <tr>
+                                            <td>
+                                                <input type="checkbox" name="selected_customers" value="{{ customer[0] }}">
+                                            </td>
+                                            <td>{{ customer[4] }}</td>
+                                            <td>{{ customer[3] }}</td>
+                                            <td>{{ customer[1] }}</td>
+                                            <td>{{ customer[2] }}</td>
+                                            <td>{{ customer[5] }}</td>
+                                            <td>{{ customer[6] }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                                <button type="submit" class="btn btn-primary">Hitung Rute</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-8">
+                    <div class="card">
+                        <div class="card-body">
+                            {% if route_data %}
+                            <h3>Detail Rute</h3>
+                            <h4>Rute yang Ditempuh:</h4>
+                                {{formatted_route}}
+                            <p>Total Jarak: {{ total_distance }} km</p>
+                            <!-- Map -->
+                            <div id="map" style="height: 450px"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-8">
+                    <div class="card">
+                        <div class="card-body">
+                            {% if nearest_neighbor_table %}
+                            <h3>Hasil Nearest Neighbor</h3>
+                            <table border="1" style="width: 100%; text-align: center;">
+                                <thead>
+                                    <tr>
+                                        <th>Dari</th>
+                                        <th>Ke</th>
+                                        <th>Koordinat Dari</th>
+                                        <th>Koordinat Ke</th>
+                                        <th>Jarak (km)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in nearest_neighbor_table %}
+                                        <tr>
+                                            <td>{{ row.from }}</td>
+                                            <td>{{ row.to }}</td>
+                                            <td>{{ row.from_coord[0] }}, {{ row.from_coord[1] }}</td>
+                                            <td>{{ row.to_coord[0] }}, {{ row.to_coord[1] }}</td>
+                                            <td>{{ row.distance }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        {% endif %}
+                        </div>
+                    </div>
+                </div>
+            <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+            <script src="https://unpkg.com/polyline@latest/dist/polyline.min.js"></script>
+            <script src="static/js/Leaflet_encoded.js"></script>
+            <script src="static/js/polyline.js"></script>
+
+            <script>
+                /*
+                var map = L.map('map').setView([-7.614529, 110.712247], 8); // Inisialisasi peta
+                
+                // Tambahkan layer OpenStreetMap
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                
+                var route_data = {{ route_data|tojson }}; // Dapatkan data route (rute TSP)
+                var selected_customers = {{ selected_customers|tojson }}; // Dapatkan data pelanggan yang dipilih
+                var orderedCoordinates = {{ ordered_coordinates | tojson }};
+                var segmentDistances = {{ nearest_neighbor_table | tojson }};
+                console.log(orderedCoordinates);
+                console.log(selected_customers);
+                // Cek apakah route_data ada
+                if (route_data && route_data.routes && route_data.routes.length > 0) {
+                    try {
+                        var geometry = route_data.routes[0].geometry;
+                    
+
+                        // Decode geometry menggunakan polyline
+                        var routeCoordinates = polyline.decode(geometry);
+                        var latLngs = routeCoordinates.map(coord => [coord[0], coord[1]]); // Mengubah menjadi [lat, lon]
+                        
+
+                        // Tambahkan marker hanya untuk titik-titik penting (titik customer)
+                        orderedCoordinates.forEach(function(coord, index) {
+                            var customerLatLng = coord; // Ambil koordinat (latitude, longitude) dari hasil TSP
+                            
+                            // Penamaan huruf kapital berdasarkan urutan
+                            var label = String.fromCharCode(65 + index); // 65 = 'A' dalam ASCII
+                            var customer = selected_customers[index]; // Ambil data customer berdasarkan indeks
+                            // Tambahkan marker untuk customer
+                            L.marker(customerLatLng, {
+                                icon: L.divIcon({
+                                    className: 'custom-label',  // Kelas CSS untuk label
+                                    html: label,  // Label yang ditampilkan
+                                    iconSize: [30, 30],  // Ukuran icon
+                                    iconAnchor: [15, 15]  // Anchor posisi icon (di tengah)
+                                })
+                            }).addTo(map)
+                            .bindPopup(`
+                            <b>${label}</b>
+                            <br>${customer[1]}
+                            <br>${customer[2]}
+                            <br>${customer[6]}`)
+                            .openPopup();
+                        });
+
+                        var routeLine = L.polyline(latLngs, {
+                            color: 'blue', // Warna jalur utama
+                            weight: 4,
+                            smoothFactor: 1.0
+                        }).addTo(map);
+
+
+                        // Tambahkan jarak antar segmen sebagai label
+                        segmentDistances.forEach((segment) => {
+                            const midLat = (segment.from[0] + segment.to[0]) / 2;
+                            const midLon = (segment.from[1] + segment.to[1]) / 2;
+                            const distance = segment.distance;
+
+                            // Tambahkan label jarak pada tengah-tengah segmen
+                            L.marker([midLat, midLon], {
+                                icon: L.divIcon({
+                                    className: 'distance-label',
+                                    html: `<div style="background-color: white; padding: 2px; border-radius: 4px; border: 1px solid #ccc;">
+                                                ${distance} km
+                                        </div>`,
+                                    iconSize: [50, 20],
+                                })
+                            }).addTo(map);
+                        });
+                        
+                        */
+                        // Menampilkan ringkasan urutan rute di dalam tabel
+                        var routeSummary = '<h3>Ringkasan Urutan Rute</h3><table class="table table-striped"><thead><tr><th>Urutan</th><th>Nama Customer</th><th>Nama Perusahaan</th></tr></thead><tbody>';
+                        
+                        selected_customers.forEach(function(customer, index) {
+                            var label = String.fromCharCode(65 + index); // Penamaan berdasarkan urutan huruf
+                            routeSummary += `<tr><td>${label}</td><td>${customer[1]}</td><td>${customer[2]}</td></tr>`;
+                        });
+            
+                        routeSummary += '</tbody></table>';
+                        document.getElementById('routeSummary').innerHTML = routeSummary;
+            
+                        // Atur tampilan peta agar mencakup seluruh rute
+                        map.fitBounds(L.polyline(latLngs).getBounds());
+            
+                    } catch (error) {
+                        console.error("Error processing route data:", error);
+                    }   
+                } else {
+                    console.warn("Route data is not available or invalid.");
+                }
+            </script>
+            
+        {% endif %}
+            <script>
+            function sortTable() {
+            var table = document.getElementById("customerTable");
+            var rows = Array.from(table.rows).slice(1); // Ambil semua baris kecuali header
+            var switching = false;
+            var dir = "asc"; // Default ke ascending
+
+            // Tentukan kolom mana yang disortir (indeks 1 untuk "Tanggal Kirim")
+            var columnIndex = 1; // Sesuaikan dengan posisi kolom "Tanggal Kirim"
+
+            // Dapatkan arah sortir dari atribut data-sort (jika tersedia)
+            var header = table.rows[0].getElementsByTagName("TH")[columnIndex];
+            if (header && header.getAttribute('data-sort')) {
+                dir = header.getAttribute('data-sort') === "asc" ? "desc" : "asc";
+            }
+
+            // Lakukan sortir
+            rows.sort((rowA, rowB) => {
+                var cellA = rowA.cells[columnIndex].innerText.trim();
+                var cellB = rowB.cells[columnIndex].innerText.trim();
+
+                var dateA = new Date(cellA);
+                var dateB = new Date(cellB);
+
+                if (isNaN(dateA) || isNaN(dateB)) {
+                    // Jika format tanggal tidak valid, sortir sebagai string
+                    return dir === "asc" ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+                }
+
+                // Sortir berdasarkan tanggal
+                return dir === "asc" ? dateA - dateB : dateB - dateA;
+            });
+
+            // Tambahkan baris yang sudah disortir kembali ke tabel
+            rows.forEach(row => table.tBodies[0].appendChild(row));
+
+            // Perbarui arah sortir pada header
+            if (header) {
+                header.setAttribute('data-sort', dir);
+            }
+        }
+    </script>
+    <script>
+        document.querySelector('form').addEventListener('submit', function(event) {
+            const selectedCustomers = document.querySelectorAll('input[name="customers[]"]:checked');
+            let selectedValues = [];
+            selectedCustomers.forEach(function(checkbox) {
+                selectedValues.push(checkbox.value);
+            });
+            console.log("Selected Customers:", selectedValues);
+        });
+    </script>    
+    
+            </main>
+        </body>
+    </html>

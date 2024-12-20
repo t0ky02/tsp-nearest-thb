@@ -1,0 +1,12 @@
+.custom-label {
+    background-color: #ff0000; /* Warna latar belakang (biru) */
+    border-radius: 50%;  /* Bentuk bulat */
+    color: white; /* Warna teks */
+    text-align: center;
+    line-height: 30px; /* Menjaga teks di tengah */
+    font-size: 16px; /* Ukuran font */
+    font-weight: bold; /* Menebalkan font */
+    width: 30px;  /* Lebar icon */
+    height: 30px; /* Tinggi icon */
+}
+

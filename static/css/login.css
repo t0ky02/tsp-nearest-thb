@@ -1,0 +1,36 @@
+ body{
+    background-color: #787878;    
+}
+
+
+.form-box{
+    height:100%;
+    border-radius: 3px;
+    box-shadow: 20px;
+    border: 10px;
+}
+
+p{
+    font-weight: bold ;
+}
+
+label{
+    font-weight: bold;
+}
+
+.form input{
+    width: 50%;
+}
+
+.button-login{
+    background-color: #dcdcdc;
+    align-self: center;
+    border-radius: 3px;
+    color: black;
+    border: 0;
+    padding: 5px;
+}
+
+.button-login:hover{
+    background-color: rgb(208, 158, 120);
+}

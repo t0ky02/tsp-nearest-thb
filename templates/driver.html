@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="eng">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Favicons -->
+    <link href="assets/img/favicon.png" rel="icon">
+    <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.gstatic.com" rel="preconnect">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+
+    <!--Custom CSS-->
+    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='css/index.css')}}">
+    <link href="static/css/style.css" rel="stylesheet">
+
+    <!-- Vendor CSS Files -->
+    <link href="static/bootstrap5/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Vendor JS Files -->
+    <script src="static/bootstrap5/js/bootstrap.bundle.min.js"></script>
+    <script src="static/bootstrap5/js/boostrap.min.js"></script>
+
+    <!-- Template Main JS File -->
+    <script src="static/js/main.js"></script>
+    <title>Driver - PT. Tunas Harapan Baru</title>
+</head>
+<body> 
+  {{ navbar|safe }}
+  <main id="main" class="main">
+    <div class="pagetitle">
+      <h1>Driver</h1>
+      <nav>
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="">Home</a></li>
+          <li class="breadcrumb-item active">Driver</li>
+        </ol>
+      </nav>
+    </div><!-- End Page Title -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addModal">
+                    Add
+                </button>
+                <h5 class="card-title">List Driver<span>/ Supir</span></h5>
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th >No</th>
+                        <th >Nama Supir</th>
+                        <th >No Telp</th>
+                        <th >Plat Nomor</th>   
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for index, row in enumerate(driver) %}
+                    <tr>
+                        <td>{{index+1}}</td>
+                        <td>{{row[1]}}</td>
+                        <td>{{row[2]}}</td>
+                        <td>{{row[3]}}</td>
+                        <td>
+                            <div class="mb-3">
+                                <a href="" type="button" class="btn btn-danger">Delete</a>
+                            </div>
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editModal" 
+                                    data-id="{{ row[0] }}"
+                                    data-nama="{{ row[1] }}"
+                                    data-perusahaan="{{ row[2] }}"
+                                    data-tanggalkirim="{{ row[4] }}"
+                                    data-telp="{{ row[5] }}"
+                                    data-alamat="{{ row[6] }}">
+                                    Edit
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+     <!-- Modal -->
+     <div class="modal" id="addModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Input Data Driver</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="/driver" method="POST">
+                        <div class="mb-3">
+                            <label for="nama_driver" class="form-label">Nama Driver</label>
+                            <input type="text" name="nama_driver" id="nama_driver" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="namaperusahaan" class="form-label"> Plat nomor </label>
+                            <input type="text" name="namaperusahaan" id="namaperusahaan" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="telp" class="form-label">No Telp</label>
+                            <input type="telp" name="telp" id="telp" class="form-control" pattern="+62-[0-9]{3}-[0-9]{3}-[0-9]{3}" required>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Save changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main><!-- End #main -->
+</body>
+</html>

@@ -1,0 +1,28 @@
+#map {
+    width: 400px;    /* Tentukan lebar kotak */
+    height: 400px;   /* Tentukan tinggi kotak agar peta berbentuk kotak */
+    border: 1px solid #ccc; /* Jika ingin menambahkan border */
+    margin: 0 auto;   /* Agar map berada di tengah */
+}
+
+.modal-dialog {
+    max-width: 500px;  /* Ubah lebar modal menjadi lebih besar */
+}
+
+@media (min-width : 40rem){
+    th, tr{
+        font-size: 12px !important;
+    }
+}
+
+.modal {
+    position: relative; /* Pastikan ini ada */
+    overflow: visible; /* Jika modal memiliki aturan overflow */
+    z-index: 1040; /* Sedikit di bawah kotak saran */
+}
+
+textarea#alamat {
+    z-index: 1045; /* Pastikan di atas modal konten */
+}
+
+.navbar 

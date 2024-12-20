@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="eng">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Favicons -->
+    <link href="assets/img/favicon.png" rel="icon">
+    <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.gstatic.com" rel="preconnect">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+
+    <!--Custom CSS-->
+    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='css/index.css')}}">
+    <link href="static/css/style.css" rel="stylesheet">
+
+    <!-- Vendor CSS Files -->
+    <link href="static/bootstrap5/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Vendor JS Files -->
+    <script src="static/bootstrap5/js/bootstrap.bundle.min.js"></script>
+    <script src="static/bootstrap5/js/boostrap.min.js"></script>
+
+    <!-- Template Main JS File -->
+    <script src="static/js/main.js"></script>
+    <title>Home - PT. Tunas Harapan Baru</title>
+</head>
+<body> 
+  {{ navbar|safe }}
+  <main id="main" class="main">
+    <div class="pagetitle">
+      <h1>Dashboard</h1>
+      <nav>
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="">Home</a></li>
+          <li class="breadcrumb-item active">Dashboard</li>
+        </ol>
+      </nav>
+    </div><!-- End Page Title -->
+
+    <section class="section dashboard">
+      <div class="row">
+
+        <!-- Left side columns -->
+        <div class="col-lg-8">
+          <div class="row">
+    </section>
+    Welcome, {{ driver_name }}
+    <br>
+    <p> PT. Tunas Harapan Baru adalah perusahaan yang bergerak dibidang jasa logistik dan pengiriman barang, perusahaan ini dibuat oleh LIM NYUK LIE pada tahun 2005 yang berlokasi di Cengkareng, Jakarta Barat.
+        perusahaan ini memiliki sekitar 134 karyawan termasuk supir dan 120 kendaraan bermuatan besar seperti truck dengan berbagai macam jenis. </p>
+
+  </main><!-- End #main -->
+
+  <!-- ======= Footer ======= -->
+  <footer id="footer" class="footer">
+    <div class="copyright">
+      &copy; Copyright <strong><span>PT. Tunas Harapan Baru</span></strong>. All Rights Reserved
+    </div>
+    <div class="credits">
+      <!-- All the links in the footer should remain intact. -->
+      <!-- You can delete the links only if you purchased the pro version. -->
+      <!-- Licensing information: https://bootstrapmade.com/license/ -->
+      <!-- Purchase the pro version with working PHP/AJAX contact form: https://bootstrapmade.com/nice-admin-bootstrap-admin-html-template/ -->
+      Designed by <a href="https://bootstrapmade.com/">Juan Felix Lim</a>
+    </div>
+  </footer><!-- End Footer -->
+
+  <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+  
+</body>
+</html>

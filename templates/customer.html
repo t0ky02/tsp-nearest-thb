@@ -1,0 +1,276 @@
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">  <!--  Mengatur encoding halaman menjadi UTF-8 untuk mendukung berbagai karakter.-->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!--  Membuat halaman responsif agar cocok untuk perangkat dengan berbagai ukuran layar.-->
+
+        <!-- Favicons -->
+        <link href="assets/img/favicon.png" rel="icon">
+        <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+        <!-- Google Fonts -->
+        <link href="https://fonts.gstatic.com" rel="preconnect">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='css/index.css')}}">
+        <link href="static/css/style.css" rel="stylesheet">
+
+        <!-- Vendor CSS Files -->
+        <link href="static/bootstrap5/css/bootstrap.min.css" rel="stylesheet">
+
+        <!-- Leaflet CSS for Map -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.css"/>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
+        <!-- Title -->
+        <title>Customer - PT. Tunas Harapan Baru</title>
+    </head>
+    <body>
+        {{navbar|safe}}
+        {% with messages = get_flashed_messages(with_categories=True) %}
+        {% if messages %}
+            <ul>
+                {% for category, message in messages %}
+                    <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% endwith %}
+        <main id="main" class="main">
+            <div class="pagetitle">
+                <h1>Customer</h1>
+                <nav>
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/index">Home</a></li>
+                        <li class="breadcrumb-item active">Customer</li>
+                    </ol>
+                </nav>
+            </div><!-- End Page Title -->
+
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addModal">
+                            Add
+                        </button>
+                        <h5 class="card-title">List Customer<span>/</span></h5>
+                        <table class="table">
+                            <thead
+                            <tr>
+                                <th >No</th>
+                                <th >Tanggal Kirim</th>
+                                <th >Tanggal Input</th>
+                                <th >Nama Customer</th>
+                                <th >Nama Perusahaan</th>
+                                <th >No Telp</th>
+                                <th >Alamat</th>     
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for index, row in enumerate(customer) %}
+                            <tr>
+                                <td>{{index+1}}</td>
+                                <td>{{row[4]}}</td>
+                                <td>{{row[3]}}</td>
+                                <td>{{row[1]}}</td>
+                                <td>{{row[2]}}</td>
+                                <td>{{row[5]}}</td>
+                                <td>{{row[6]}}</td>
+                                <td>
+                                    <div class="mb-3">
+                                        <a href="/delete/{{row[0]}}" type="button" class="btn btn-danger">Delete</a>
+                                    </div>
+                                    <div class="mb-3">
+                                        <a href="/edit/{{row[0]}}" type="button" class="btn btn-warning">Edit</a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal -->
+            <div class="modal" id="addModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Input Data Customer</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form action="/customer" method="POST">
+                                <div class="mb-3">
+                                    <label for="namacustomer" class="form-label">Nama Customer</label>
+                                    <input type="text" name="namacustomer" id="namacustomer" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="namaperusahaan" class="form-label">Nama Perusahaan</label>
+                                    <input type="text" name="namaperusahaan" id="namaperusahaan" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="tanggalinput" class="form-label">Tanggal Input</label>
+                                    <input type="datetime-local" name="tanggalinput" id="tanggalinput" readonly required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="tanggalkirim" class="form-label">Tanggal Kirim</label>
+                                    <input type="date" name="tanggalkirim" id="tanggalkirim" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="telp" class="form-label">No Telp</label>
+                                    <input type="telp" name="telp" id="telp" class="form-control" pattern="+62-[0-9]{3}-[0-9]{3}-[0-9]{3}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="alamat" class="form-label">Alamat</label>
+                                    <textarea class="form-control" name="alamat" id="alamat" rows="3" required></textarea>
+                                </div>
+
+                                <!-- Tempatkan Map -->
+                                <div id="map" style="height: 400px;"></div>
+                                <input type="hidden" name="latitude" id="latitude">
+                                <input type="hidden" name="longitude" id="longitude">
+
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    <button type="submit" class="btn btn-primary">Save changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Vendor JS Files -->
+        <script src="static/bootstrap5/js/bootstrap.bundle.min.js"></script>
+
+        <!-- Leaflet JS for Map -->
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+        <script src="static/js/ORSGeocodingAPI.js"></script>
+        <script src="static/js/jquery-min.js"></script>
+        <!-- Custom Script -->
+        <script>
+            const phoneInputField = document.querySelector("#telp");
+            const phoneInput = window.intlTelInput(phoneInputField, {
+                utilsScript:
+                "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+            });
+
+            var map;
+            var marker;
+
+            // Batas Pulau Jawa
+            var bounds = L.latLngBounds(
+                L.latLng(-8.793611, 105.305374), // Ujung Barat Daya (Ujung Kulon)
+                L.latLng(-5.832497, 114.623748)  // Ujung Timur Laut (Banyuwangi)
+            );
+
+            document.getElementById('addModal').addEventListener('shown.bs.modal', function () {
+                if (!map) {
+                    map = L.map('map', {
+                        center: [-7.5, 110.5],
+                        zoom: 8,
+                        maxBounds: bounds,
+                        maxBoundsViscosity: 1.0
+                    });
+
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    }).addTo(map);
+
+                    map.fitBounds(bounds);
+                } else {
+                    map.invalidateSize();
+                }
+
+                // Event saat klik peta
+                map.on('click', function (e) {
+                    var lat = e.latlng.lat;
+                    var lng = e.latlng.lng;
+
+                    // Validasi apakah titik dalam batas Pulau Jawa
+                    if (!isWithinJawa(lat, lng)) {
+                        alert("Titik yang dipilih berada di luar Pulau Jawa. Silakan pilih titik dalam batas Pulau Jawa.");
+                        return;
+                    }
+                
+                    document.getElementById('latitude').value = lat;
+                    document.getElementById('longitude').value = lng;
+
+                    // Pindahkan marker ke lokasi yang diklik
+                    if (marker) {
+                        marker.setLatLng(e.latlng).update();
+                    } else {
+                        marker = L.marker(e.latlng).addTo(map);
+                    }
+
+                    // Panggil fungsi geocoding untuk mendapatkan alamat
+                    reverseGeocode(lat, lng);
+                });
+            });
+
+            // Fungsi untuk memeriksa apakah titik berada dalam batas Pulau Jawa
+            function isWithinJawa(lat, lng) {
+                return bounds.contains(L.latLng(lat, lng));
+            }
+
+            // Fungsi untuk melakukan reverse geocoding menggunakan Nominatim (OpenStreetMap)
+            function reverseGeocode(lat, lng) {
+                var url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1`;
+
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data.address) {
+                            var addressParts = [];
+                            // Menambahkan berbagai elemen alamat lebih lengkap
+                            if (data.address.house_number) addressParts.push(data.address.house_number);
+                            if (data.address.road) addressParts.push(data.address.road);
+                            if (data.address.suburb) addressParts.push(data.address.suburb);
+                            if (data.address.city) addressParts.push(data.address.city);
+                            if (data.address.state) addressParts.push(data.address.state);
+                            if (data.address.postcode) addressParts.push(data.address.postcode);
+                            if (data.address.country) addressParts.push(data.address.country);
+
+                            // Gabungkan seluruh bagian alamat menjadi satu string
+                            var fullAddress = addressParts.join(', ');
+                            // Jika tidak ada alamat ditemukan, berikan fallback
+                            document.getElementById('alamat').value = fullAddress || "Alamat tidak ditemukan";
+                        } else {
+                            document.getElementById('alamat').value = "Alamat tidak ditemukan";
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching geocoding data:', error);
+                        document.getElementById('alamat').value = "Gagal mengambil alamat";
+                    });
+            }
+
+            // Set tanggal input otomatis
+            function setCurrentDatetime() {
+                const now = new Date();
+
+                // Menyesuaikan waktu lokal ke WIB (UTC+7)
+                const wibOffset = now.getTimezoneOffset() + 420; // Offset dalam menit (420 = 7 jam * 60)
+                const wibDate = new Date(now.getTime() + wibOffset * 60 * 1000);
+
+                // Format tanggal dan waktu untuk input datetime-local
+                const year = wibDate.getFullYear();
+                const month = String(wibDate.getMonth() + 1).padStart(2, '0'); // Bulan dimulai dari 0
+                const date = String(wibDate.getDate()).padStart(2, '0');
+                const hours = String(wibDate.getHours()).padStart(2, '0');
+                const minutes = String(wibDate.getMinutes()).padStart(2, '0');
+
+                const formattedDate = `${year}-${month}-${date}T${hours}:${minutes}`;
+                document.getElementById('tanggalinput').value = formattedDate;
+            }
+
+            window.onload = setCurrentDatetime;
+
+        </script>
+    </body>
+    </html>
