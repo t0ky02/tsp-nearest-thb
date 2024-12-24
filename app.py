@@ -219,7 +219,7 @@ def haversine(lat1, lon1, lat2, lon2):
     
     return R * c  # Jarak dalam kilometer
 
-def build_actual_distance_matrix(customers):
+def build_actual_distance_matrix(coordinates):
     """
     Membangun matriks jarak asli menggunakan OpenRouteService API berdasarkan jalan.
     """
@@ -227,7 +227,7 @@ def build_actual_distance_matrix(customers):
     base_url = "https://api.openrouteservice.org/v2/matrix/driving-car"
 
     # Format koordinat [longitude, latitude]
-    coordinates = [[float(c[8]), float(c[7])] for c in customers]
+    coordinates = [[c[1], c[0]] for c in coordinates]
     payload = {
         "locations": coordinates,
         "metrics": ["distance"]
@@ -287,13 +287,25 @@ def nearest_neighbor_algorithm(distance_matrix):
 
 @app.route('/tsp', methods=['GET', 'POST'])
 def tsp():
+    # Mengambil data customer
     cursor = mysql.connection.cursor()
     cursor.execute("SELECT id, namacustomer, namaperusahaan, tanggalinput, tanggalkirim, telp, alamat, latitude, longitude FROM customer")
     customers = cursor.fetchall()
+    # Mengambil data driver
     cursor.execute("SELECT id, nama_driver FROM driver")
     drivers = cursor.fetchall()
     cursor.close()
+    
+    cursor = mysql.connection.cursor()
+    cursor.execute("""
+        SELECT routes.id, driver.nama_driver, routes.tanggal_kirim, routes.total_distance
+        FROM routes
+        JOIN driver ON routes.driver_id = driver.id
+    """)
+    routes_list = cursor.fetchall()
+    cursor.close()
 
+    company_location = -6.218400187288391, 106.4833542644175
     if request.method == 'POST':
         selected_driver = request.form.get('selected_driver')
         selected_customers = request.form.getlist('selected_customers')  # List of customer IDs
@@ -304,10 +316,10 @@ def tsp():
 
         # Ambil data customer yang dipilih
         selected_customers = [c for c in customers if str(c[0]) in selected_customers]
-        coordinates = [(float(c[7]), float(c[8])) for c in selected_customers]
-
+        coordinates = [company_location] + [(float(c[7]), float(c[8])) for c in selected_customers]
+        
         # Membuat matriks jarak
-        distance_matrix = build_actual_distance_matrix(selected_customers)
+        distance_matrix = build_actual_distance_matrix(coordinates)
         route = nearest_neighbor_algorithm(distance_matrix)
 
         # Urutkan koordinat berdasarkan rute
@@ -321,23 +333,27 @@ def tsp():
             'route_order': route
         }
 
+        print(f"Driver ID: {selected_driver}")
+        print(f"Total Distance: {route_details['total_distance']}")
+        print(f"Route Details: {route_details}")
+        print(f"Route Order: {route_details['route_order']}")
         cursor = mysql.connection.cursor()
-        for customer in selected_customers:
-            cursor.execute("""
-                INSERT INTO route (driver_id, customer_id, total_distance, route_data)
-                VALUES (%s, %s, %s, %s)
-            """, (selected_driver, customer[0], route_details['total_distance'], str(route_details)))
+        cursor.execute("""
+            INSERT INTO routes (driver_id, total_distance, route)
+            VALUES (%s, %s, %s)
+        """, (selected_driver, route_details['total_distance'], str(route_details['coordinates'])))
         mysql.connection.commit()
         cursor.close()
-        
+        print([route_details['total_distance']])
         flash('Route successfully created and saved!', 'success')
         return redirect(url_for('tsp'))
 
     return render_template(
         'tsp.html',
         navbar=navbar_admin,
-        customers=customers,
-        drivers=drivers
+        customers=customers, 
+        drivers=drivers,
+        route_list = routes_list
     )
 
 @app.route('/logout', methods=['GET', 'POST'])
@@ -376,30 +392,16 @@ def index_driver():
     return render_template('index_driver.html', navbar=navbar_with_driver_name)
     #return render_template('index_driver.html', driver_name=driver_name,navbar=navbar_driver)
 
-@app.route('/admin_routes', methods=['GET'])
-def admin_routes():
-    cursor = mysql.connection.cursor()
-    cursor.execute("""
-        SELECT route.id, driver.nama_driver, customer.namacustomer, route.route_details, route.total_distance
-        FROM route
-        JOIN driver ON route.driver_id = driver.id
-        JOIN customer ON route.customer_id = customer.id
-    """)
-    routes = cursor.fetchall()
-    cursor.close()
-
-    return render_template('admin_routes.html', routes=routes, navbar=navbar_admin)
-
 @app.route('/driver_routes', methods=['GET'])
 def driver_routes():
     cursor = mysql.connection.cursor()
     driver_id = session.get('user_id')
     cursor.execute("""
-        SELECT route.id, driver.nama_driver, customer.namacustomer, route.route_details, route.total_distance
-        FROM route
-        JOIN driver ON route.driver_id = driver.id
-        JOIN customer ON route.customer_id = customer.id
-        WHERE route.driver_id = %s
+        SELECT routes.id, driver.nama_driver, customer.namacustomer, routes.route_details, routes.total_distance
+        FROM routes
+        JOIN driver ON routes.driver_id = driver.id
+        JOIN customer ON routes.customer_id = customer.id
+        WHERE routes.driver_id = %s
     """, [driver_id])
     routes = cursor.fetchall()
     cursor.close()
