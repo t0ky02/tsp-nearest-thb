@@ -57,7 +57,7 @@
                         </button>
                         <h5 class="card-title">List Customer<span>/</span></h5>
                         <table class="table">
-                            <thead
+                            <thead>
                             <tr>
                                 <th >No</th>
                                 <th >Tanggal Kirim</th>
@@ -66,11 +66,12 @@
                                 <th >Nama Perusahaan</th>
                                 <th >No Telp</th>
                                 <th >Alamat</th>     
+                                <th >Action</th>
                             </tr>
                             </thead>
                             <tbody>
                             {% for index, row in enumerate(customer) %}
-                            <tr>
+                            <tr class="align-middle">
                                 <td>{{index+1}}</td>
                                 <td>{{row[4]}}</td>
                                 <td>{{row[3]}}</td>

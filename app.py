@@ -309,6 +309,7 @@ def tsp():
     if request.method == 'POST':
         selected_driver = request.form.get('selected_driver')
         selected_customers = request.form.getlist('selected_customers')  # List of customer IDs
+        tanggal_kirim = request.form['tanggal_kirim']
         print(f"Selected Customers: {selected_customers}")
         print(f"Selected Driver: {selected_driver}")
         if not selected_driver or not selected_customers:
@@ -339,9 +340,23 @@ def tsp():
         print(f"Route Order: {route_details['route_order']}")
         cursor = mysql.connection.cursor()
         cursor.execute("""
-            INSERT INTO routes (driver_id, total_distance, route)
-            VALUES (%s, %s, %s)
-        """, (selected_driver, route_details['total_distance'], str(route_details['coordinates'])))
+            INSERT INTO routes (driver_id, total_distance, tanggal_kirim, route)
+            VALUES (%s, %s, %s, %s)
+        """, (selected_driver, route_details['total_distance'], tanggal_kirim, str(route_details['coordinates'])))
+        mysql.connection.commit()
+
+        route_id = cursor.lastrowid
+
+    # Menyimpan data detail rute ke tabel `route_details`
+        for order_number, customer in enumerate(route_details['route_order']):
+            if customer == 0:  # Lewati titik awal (perusahaan)
+                continue
+            customer_id = selected_customers[customer - 1][0]
+            cursor.execute("""
+                INSERT INTO route_details (route_id, customer_id, order_index)
+                VALUES (%s, %s, %s)
+            """, (route_id, customer_id, order_number))
+
         mysql.connection.commit()
         cursor.close()
         print([route_details['total_distance']])
@@ -355,6 +370,16 @@ def tsp():
         drivers=drivers,
         route_list = routes_list
     )
+
+@app.route('/delete_route/<int:id>', methods=['GET', 'POST'])
+def delete_route(id):
+    cursor = mysql.connection.cursor()  
+    cursor.execute("DELETE FROM routes WHERE id = %s", (id,))
+    mysql.connection.commit()
+    cursor.close()
+
+    flash("Route deleted successfully", "success")
+    return redirect(url_for('tsp'))
 
 @app.route('/logout', methods=['GET', 'POST'])
 def logout():

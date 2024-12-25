@@ -30,7 +30,7 @@
         {{navbar|safe}}
         <main id="main" class="main">
             <div class="pagetitle">
-                <h1>Travelling Salesman Problem - This is v1.1</h1>
+                <h1>Travelling Salesman Problem</h1>
                 <nav>
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="/index">Home</a></li>
@@ -65,7 +65,7 @@
                                 </thead>
                                 <tbody>
                                     {% for customer in customers %}
-                                    <tr>
+                                    <tr class="align-middle">
                                         <td>
                                             <input type="checkbox" name="selected_customers" value="{{ customer[0] }}">
                                         </td>
@@ -79,8 +79,7 @@
                                     {% endfor %}
                                 </tbody>
                             </table>
-                            <button type="submit" class="btn btn-primary">Hitung Rute</button>
-                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="updateTanggalModal">
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#updateTanggalModal">
                                 Proses
                             </button>
                             <div class="modal" id="updateTanggalModal" tabindex="-1">
@@ -91,7 +90,11 @@
                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
                                         <div class="modal-body">
-                                            teest
+                                            <input type="date" name="tanggal_kirim" id="tanggal_kirim" required>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            <button type="submit" class="btn btn-primary">Buat Rute</button>
                                         </div>
                                     </div>
                                 </div>
@@ -103,7 +106,6 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-body">
-                
                         <h3>Daftar Rute</h3>
                         <table class="table ">
                             <thead class="thead-dark">
@@ -112,15 +114,19 @@
                                     <th>Nama Driver</th>
                                     <th>Tanggal Kirim</th>
                                     <th>Total Jarak</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for index,row in enumerate(route_list) %}
-                                    <tr class="clickable-row" onclick="">
+                                    <tr class="clickable-row align-middle" onclick="getRouteDetails('{{row[0]}}')">
                                         <td>{{ index+1 }}</td>
                                         <td>{{ row[1] }}</td>
                                         <td>{{ row[2] }}</td>
                                         <td>{{ row[3] }} Km</td>
+                                        <td>
+                                            <a href="/delete_route/{{row[0]}}" type="button" class="btn btn-danger" style="width: 40%;">Delete</a>
+                                        </td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
@@ -188,6 +194,30 @@
             });
             console.log("Selected Customers:", selectedValues);
         });
+
+    </script>
+    <script>
+        function getRouteDetails(row) {
+            // Ambil nilai data-id dari baris yang diklik
+            const routeId = row.getAttribute('data-id');
+            console.log('Route ID:', routeId);
+
+            // Lakukan aksi sesuai kebutuhan (misalnya, navigasi atau fetch data)
+            window.location.href = `/route_detail/${routeId}`;
+        }
+    </script>
+
+    <script>
+        let today = new Date()
+
+        let year = today.getFullYear()
+        let month = today.getMonth() + 1 // the months are indexed starting with 0
+        let date = today.getDate()
+
+        let dateStr = `${year}-${month}-${date}`
+
+        let input = document.querySelector('[name=tanggal_kirim]')
+        input.setAttribute('min', dateStr)
     </script>    
         </main>
     </body>

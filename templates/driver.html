@@ -53,31 +53,29 @@
                         <th >Nama Supir</th>
                         <th >No Telp</th>
                         <th >Plat Nomor</th>   
+                        <th>Action</th>
                     </tr>
                     </thead>
                     <tbody>
                     {% for index, row in enumerate(driver) %}
-                    <tr>
+                    <tr class="align-middle">
                         <td>{{index+1}}</td>
                         <td>{{row[1]}}</td>
                         <td>{{row[2]}}</td>
                         <td>{{row[3]}}</td>
                         <td>
-                            <div class="mb-3">
-                                <a href="" type="button" class="btn btn-danger" style="width: 40%;">Delete</a>
-                            </div>
-                            <div class="mb-3">
-                                <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editModal" 
-                                    data-id="{{ row[0] }}"
-                                    data-nama="{{ row[1] }}"
-                                    data-perusahaan="{{ row[2] }}"
-                                    data-tanggalkirim="{{ row[4] }}"
-                                    data-telp="{{ row[5] }}"
-                                    data-alamat="{{ row[6] }}"
-                                    style="width: 40%;">
-                                    Edit
-                                </button>
-                            </div>
+                            <a href="" type="button" class="btn btn-danger" style="width: 40%;">Delete</a>
+                        
+                            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editModal" 
+                                data-id="{{ row[0] }}"
+                                data-nama="{{ row[1] }}"
+                                data-perusahaan="{{ row[2] }}"
+                                data-tanggalkirim="{{ row[4] }}"
+                                data-telp="{{ row[5] }}"
+                                data-alamat="{{ row[6] }}"
+                                style="width: 40%;">
+                                Edit
+                            </button>
                         </td>
                     </tr>
                     {% endfor %}
