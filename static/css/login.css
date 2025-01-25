@@ -10,9 +10,6 @@
     border: 10px;
 }
 
-p{
-    font-weight: bold ;
-}
 
 label{
     font-weight: bold;
@@ -33,4 +30,13 @@ label{
 
 .button-login:hover{
     background-color: rgb(208, 158, 120);
+}
+
+.background-logo{
+    z-index: -1;
+    position: absolute;
+    max-width: 40%;
+    opacity: 0.08;
+    text-align: center;
+    left: 30%;
 }

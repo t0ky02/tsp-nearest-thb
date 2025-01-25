@@ -29,6 +29,13 @@
     <body>
         {{navbar|safe}}
         <main id="main" class="main">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} close">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+            {% endwith %}
             <div class="pagetitle">
                 <h1>Travelling Salesman Problem</h1>
                 <nav>
@@ -119,7 +126,7 @@
                             </thead>
                             <tbody>
                                 {% for index,row in enumerate(route_list) %}
-                                    <tr class="clickable-row align-middle" onclick="getRouteDetails('{{row[0]}}')">
+                                    <tr class="clickable-row align-middle" data-id="{{row[0]}}" onclick="getRouteDetails('{{row[0]}}')">
                                         <td>{{ index+1 }}</td>
                                         <td>{{ row[1] }}</td>
                                         <td>{{ row[2] }}</td>
@@ -131,6 +138,13 @@
                                 {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="map" id="map" width="100%" height="400px"></div>
                     </div>
                 </div>
             </div>
@@ -199,7 +213,7 @@
     <script>
         function getRouteDetails(row) {
             // Ambil nilai data-id dari baris yang diklik
-            const routeId = row.getAttribute('data-id');
+            const routeId = row;
             console.log('Route ID:', routeId);
 
             // Lakukan aksi sesuai kebutuhan (misalnya, navigasi atau fetch data)

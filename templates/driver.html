@@ -30,6 +30,14 @@
 <body> 
   {{ navbar|safe }}
   <main id="main" class="main">
+    {{ navbar|safe }}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+          {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+          {% endfor %}
+    {% endif %}
+    {% endwith %}
     <div class="pagetitle">
       <h1>Driver</h1>
       <nav>
@@ -64,7 +72,7 @@
                         <td>{{row[2]}}</td>
                         <td>{{row[3]}}</td>
                         <td>
-                            <a href="" type="button" class="btn btn-danger" style="width: 40%;">Delete</a>
+                            <a href="/delete_driver/{{ row[0] }}" type="button" class="btn btn-danger" style="width: 40%;">Delete</a>
                         
                             <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editModal" 
                                 data-id="{{ row[0] }}"
@@ -99,8 +107,8 @@
                             <input type="text" name="nama_driver" id="nama_driver" class="form-control" required>
                         </div>
                         <div class="mb-3">
-                            <label for="namaperusahaan" class="form-label"> Plat nomor </label>
-                            <input type="text" name="namaperusahaan" id="namaperusahaan" class="form-control" required>
+                            <label for="platnomor" class="form-label">Plat Nomor</label>
+                            <input type="text" name="platnomor" id="platnomor" class="form-control" required>
                         </div>
                         <div class="mb-3">
                             <label for="telp" class="form-label">No Telp</label>

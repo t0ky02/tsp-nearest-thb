@@ -9,9 +9,15 @@
 /*--------------------------------------------------------------
 # General
 --------------------------------------------------------------*/
+@font-face {
+  font-family: GoogleSans-Regular;
+  src: url(/static/font/ProductSans-Regular.ttf);
+}
+
 :root {
   scroll-behavior: smooth;
 }
+
 
 body {
   font-family: "Open Sans", sans-serif;
@@ -35,7 +41,11 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: "Nunito", sans-serif;
+  font-family: "GoogleSans-Regular", sans-serif;
+}
+
+*{
+  font-family: "GoogleSans-Regular", sans-serif;
 }
 
 /*--------------------------------------------------------------

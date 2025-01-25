@@ -353,4 +353,13 @@ $('#editModal').on('show.bs.modal', function (event) {
   modal.find('form').attr('action', '/edit/' + id);  // Update action form untuk mengarah ke customer yang benar
 });
 
+setTimeout(function() {
+  var flashMessages = document.getElementsByClassName('flash');
+  if (flashMessages) {
+      flashMessages.style.transition = "opacity 0.5s ease";
+      flashMessages.style.opacity = "0";
+      setTimeout(() => flashMessages.remove(), 500); // Remove element after fade-out
+  }
+}, 5000); // 5000ms = 5 seconds
+
 

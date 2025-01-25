@@ -1,12 +1,14 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, make_response
 from flask_mysqldb import MySQL
-from flask_session import Session
+from flask_login import LoginManager, UserMixin, login_user, logout_user
 import requests
 import os
 import numpy as np
 import requests
 import math
 import jsonify
+from utils import login_required
+from datetime import datetime, timedelta
 app = Flask(__name__)
 
 # Konfigurasi Flask dan MySQL
@@ -14,34 +16,22 @@ app.config.from_pyfile('config.cfg')
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
 app.config['MYSQL_PASSWORD'] = ''
-app.config['MYSQL_DB'] = 'db_pt_thb'
+app.config['MYSQL_DB'] = 'db_thb'
 app.config['SECRET_KEY'] = '@#$123456&*()'
 app.config['MYSQL_PORT'] = 3306
 navbar_admin = app.config['NAVBAR_ADMIN']
 navbar_driver = app.config['NAVBAR_DRIVER']
 # Konfigurasi Flask-Session
-app.config['SESSION_TYPE'] = 'filesystem'  # Menggunakan penyimpanan file untuk session
-app.config['SESSION_FILE_DIR'] = './flask_sessions/'  # Direktori penyimpanan
-app.config['SESSION_PERMANENT'] = False
+app.config['SESSION_PERMANENT'] = True  # Aktifkan session permanent
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=1)  # Durasi session (7 hari)
 app.config['SESSION_USE_SIGNER'] = True
-Session(app)
-
-# Membuat direktori sesi jika belum ada
-if not os.path.exists('./flask_sessions/'):
-    os.makedirs('./flask_sessions/')
 
 mysql = MySQL(app)
-
-@app.route('/')
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+login_manager.session_protection = 'strong'
+@app.route('/', methods=['GET', 'POST'])
 def login():
-    return render_template('login.html')
-
-@app.context_processor
-def inject_enumerate():
-    return dict(enumerate=enumerate)
-
-@app.route('/index', methods=['GET', 'POST'])
-def index():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -50,15 +40,34 @@ def index():
         user = cursor.fetchone()
         cursor.close()
         if user:
-            session['user_id'] = user[0]
+            session['user_id'] = user[1]
+            login_user(user[1])
             flash('Login successful!', 'success')
             return redirect(url_for('index'))
         else:
             flash('Invalid credentials, please try again.', 'danger')
             return redirect(url_for('login'))
+    return render_template('login.html') 
+
+@app.route('/logout', methods=['GET'])
+@login_required
+def logout():
+    session.clear()
+    logout_user
+    return redirect(url_for('login'))
+
+@app.context_processor
+def inject_enumerate():
+    return dict(enumerate=enumerate)
+
+@app.route('/index')
+@login_required
+def index():
+    flash('Login successful!', 'success')
     return render_template('index.html', navbar=navbar_admin)
 
 @app.route('/customer', methods=['GET', 'POST'])
+@login_required
 def customer():
     cursor = mysql.connection.cursor()
     cursor.execute(
@@ -92,6 +101,7 @@ def customer():
     return render_template('customer.html', navbar=navbar_admin, customer=customer_data)
 
 @app.route('/delete/<int:id>', methods=['GET', 'POST'])
+@login_required
 def delete(id):
     cursor = mysql.connection.cursor()
     cursor.execute("DELETE FROM customer WHERE id = %s", (id,))
@@ -114,6 +124,7 @@ def delete(id):
     return redirect('/customer')
 
 @app.route('/edit/<int:id>', methods=['POST', 'GET'])
+@login_required
 def edit_customer(id):
     if request.method == 'POST':
         namacustomer = request.form['namacustomer']
@@ -145,6 +156,7 @@ def edit_customer(id):
 
 
 @app.route('/driver', methods=['GET', 'POST'])
+@login_required
 def driver():
     cursor = mysql.connection.cursor()
     cursor.execute(
@@ -155,21 +167,46 @@ def driver():
 
     if request.method == 'POST':
         nama_driver = request.form['nama_driver']
-        telp = request.form['telp']
         platnomor = request.form['platnomor']
-
+        telp = request.form['telp']
+        # Buat username otomatis
+        username = nama_driver.lower().replace(" ", ".")
+        
+        # Validasi username unik
         cursor = mysql.connection.cursor()
-        cursor.execute(
-            "INSERT INTO `driver`(`nama_driver`, `telp`, `platnomor`) "
-            "VALUES (%s, %s, %s)",
-            (nama_driver, telp, platnomor)
-        )
-        mysql.connection.commit()
-        cursor.close()
+        cursor.execute("SELECT * FROM driver WHERE username LIKE %s", (f"{username}%",))
+        existing_usernames = cursor.fetchall()
+        if existing_usernames:
+            username += str(len(existing_usernames) + 1)
 
-        flash('Driver added successfully!', 'success')
-        return redirect(url_for('driver'))
+        # Generate password default
+        password = "driver123"  # Bisa disesuaikan atau gunakan generator acak
+        #hashed_password = generate_password_hash(password)
+
+        # Masukkan data ke database
+        try:
+            cursor.execute("""
+                INSERT INTO driver (nama_driver, telp, platnomor, username, password)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (nama_driver, telp, platnomor, username, password))
+            mysql.connection.commit()
+            flash(f"Driver berhasil ditambahkan! Username: {username}, Password: {password}", "success")
+        except Exception as e:
+            flash(f"Terjadi kesalahan: {e}", "danger")
+        finally:
+            cursor.close()
+            return redirect(url_for('driver'))
     return render_template('driver.html', navbar=navbar_admin, driver=driver)
+
+@app.route('/delete_driver/<int:id>', methods=['GET', 'POST'])
+@login_required
+def delete_driver(id):
+    cursor = mysql.connection.cursor()
+    cursor.execute("DELETE FROM driver WHERE id = %s", (id,))
+    mysql.connection.commit()
+    cursor.close()
+    flash("Driver deleted successfully", "success")
+    return redirect('/driver')
 
 def get_ors_route(locations):
     """
@@ -286,6 +323,7 @@ def nearest_neighbor_algorithm(distance_matrix):
 
 
 @app.route('/tsp', methods=['GET', 'POST'])
+@login_required
 def tsp():
     # Mengambil data customer
     cursor = mysql.connection.cursor()
@@ -372,6 +410,7 @@ def tsp():
     )
 
 @app.route('/delete_route/<int:id>', methods=['GET', 'POST'])
+@login_required
 def delete_route(id):
     cursor = mysql.connection.cursor()  
     cursor.execute("DELETE FROM routes WHERE id = %s", (id,))
@@ -381,17 +420,9 @@ def delete_route(id):
     flash("Route deleted successfully", "success")
     return redirect(url_for('tsp'))
 
-@app.route('/logout', methods=['GET', 'POST'])
-def logout():
-    session.pop('user_id', None)
-    return redirect(url_for('login'))
 
 @app.route('/login_driver')
 def login_driver():
-    return render_template('login_driver.html')
-
-@app.route('/index_driver', methods=['GET', 'POST'])
-def index_driver():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -399,7 +430,7 @@ def index_driver():
         cursor.execute("SELECT * FROM driver WHERE username = %s AND password = %s", (username, password))
         driver = cursor.fetchone()
         cursor.close()
-        if driver:
+        if driver and 'user_id' in session:
             session['user_id'] = driver[0]
             session['driver_name'] = driver[3]
             flash('Login successful!', 'success')
@@ -408,8 +439,13 @@ def index_driver():
         else:
             flash('Invalid credentials, please try again.', 'danger')
             return redirect(url_for('login_driver'))
-    
+    return render_template('login_driver.html')
 
+@app.route('/index_driver', methods=['GET', 'POST'])
+@login_required
+def index_driver():
+    session['user_id'] = driver[0]
+    session['driver_name'] = driver[3]
     driver_name = session.get('driver_name', None)
 
     navbar_with_driver_name = navbar_driver.replace("{{ driver_name }}", driver_name or "Guest")
@@ -417,21 +453,41 @@ def index_driver():
     return render_template('index_driver.html', navbar=navbar_with_driver_name)
     #return render_template('index_driver.html', driver_name=driver_name,navbar=navbar_driver)
 
-@app.route('/driver_routes', methods=['GET'])
+@app.route('/driver_rute', methods=['GET'])
+@login_required
 def driver_routes():
     cursor = mysql.connection.cursor()
     driver_id = session.get('user_id')
     cursor.execute("""
-        SELECT routes.id, driver.nama_driver, customer.namacustomer, routes.route_details, routes.total_distance
+        SELECT routes.id, driver.nama_driver, routes.total_distance ,routes.tanggal_kirim, routes.route
         FROM routes
         JOIN driver ON routes.driver_id = driver.id
-        JOIN customer ON routes.customer_id = customer.id
         WHERE routes.driver_id = %s
     """, [driver_id])
     routes = cursor.fetchall()
     cursor.close()
+    print(f"Session user_id: {session.get('user_id')}")
+    driver_name = session.get('driver_name', None)
 
-    return render_template('driver_routes.html', routes=routes, navbar=navbar_driver)
+    navbar_with_driver_name = navbar_driver.replace("{{ driver_name }}", driver_name or "Guest")
+
+    return render_template('driver_rute.html', routes_list=routes, navbar=navbar_with_driver_name)
+
+@app.route('/route_detail/<int:route_id>', methods=['GET'])
+@login_required
+def route_detail(route_id):
+    cursor = mysql.connection.cursor()
+    cursor.execute("""
+        SELECT routes.id, driver.nama_driver, routes.total_distance, routes.created_at ,routes.tanggal_kirim, routes.route
+        FROM routes
+        JOIN driver ON routes.driver_id = driver.id
+        WHERE routes.id = %s
+    """, [route_id])
+    route = cursor.fetchone()
+    cursor.close()
+    
+    return render_template('route_detail.html', route_id=route, navbar=navbar_admin)                
+
 
 if __name__ == '__main__':
     app.run(debug=True)
