@@ -262,24 +262,65 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// Event listener untuk membuka modal edit
-$('#editModal').on('show.bs.modal', function (event) {
-  var button = $(event.relatedTarget); // Tombol yang diklik
-  var id = button.data('id');
-  var nama = button.data('nama');
-  var perusahaan = button.data('perusahaan');
-  var tanggalkirim = button.data('tanggalkirim');
-  var telp = button.data('telp');
-  var alamat = button.data('alamat');
+document.addEventListener("DOMContentLoaded", function() {
+  // Ambil semua tombol edit
+  const editButtons = document.querySelectorAll(".edit-btn");
 
-  // Isi data ke input modal
-  var modal = $(this);
-  modal.find('#namacustomer').val(nama);
-  modal.find('#namaperusahaan').val(perusahaan);
-  modal.find('#tanggalkirim').val(tanggalkirim);
-  modal.find('#telp').val(telp);
-  modal.find('#alamat').val(alamat);
-  modal.find('form').attr('action', '/edit/' + id);  // Update action form untuk mengarah ke customer yang benar
+  editButtons.forEach(button => {
+      button.addEventListener("click", function() {
+          const customerId = this.getAttribute("data-id");
+          console.log("data-id")
+          // Ambil data dari server
+          console.log("Fetching data..."); // Debugging
+
+          fetch(`/getedit/${customerId}`)
+              .then(response => response.json())
+              .then(data => {
+                console.log("Fetched Data:", data);
+
+                // Pastikan elemen ada sebelum diisi
+                // Konversi format tanggal dari server ke format yang valid untuk input HTML
+                const formatDatetimeLocal = (datetime) => {
+                    const date = new Date(datetime);
+                    return date.toISOString().slice(0, 16); // Format: "YYYY-MM-DDTHH:mm"
+                };
+
+                const formatDate = (dateString) => {
+                    const date = new Date(dateString);
+                    return date.toISOString().split("T")[0]; // Format: "YYYY-MM-DD"
+                };
+
+                  document.getElementById("editForm").setAttribute("action", `/edit/${data.id}`);
+                  document.getElementById("edit_namacustomer").value = data.namacustomer;
+                  document.getElementById("edit_namaperusahaan").value = data.namaperusahaan;
+                  document.getElementById("edit_tanggalinput").value = formatDatetimeLocal(data.tanggalinput);
+                  document.getElementById("edit_tanggal_kirim").value = formatDate(data.tanggalkirim);
+                  document.getElementById("edit_telp").value = data.telp;
+                  document.getElementById("edit_alamat").value = data.alamat;
+                  document.getElementById("edit_latitude").value = data.latitude;
+                  document.getElementById("edit_longitude").value = data.longitude;
+
+                  updateMap(data.latitude, data.longitude);
+              })
+              .catch(error => console.error("Error fetching customer data:", error));
+      });
+  });
+
+  
+
+
+  
+  
+  function updateMap(lat, lng) {
+      // Periksa apakah Leaflet sudah terinisialisasi
+      if (typeof L !== "undefined") {
+          map = L.map("map").setView([lat, lng], 15);
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+          L.marker([lat, lng]).addTo(map);
+      }else{
+        map.invalidateSize();
+      }
+  }
 });
 
 setTimeout(function() {

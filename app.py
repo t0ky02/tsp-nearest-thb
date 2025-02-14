@@ -6,10 +6,12 @@ import numpy as np
 import requests
 import math
 import json
-from utils import login_required, admin_required, driver_required
+from utils import login_required, admin_required, driver_required, logout_required
 from datetime import datetime, timedelta
 import openrouteservice
 from markupsafe import escape
+from livereload import Server
+
 
 app = Flask(__name__)
 
@@ -51,9 +53,9 @@ def breadcrumb_url():
     return breadcrumb
 
 @app.route('/', methods=['GET', 'POST'])
+@logout_required
 def login():
     print("Session setelah logout:", session)  # Debug setelah logout
-
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -139,51 +141,63 @@ def delete(id):
     cursor.execute("DELETE FROM customer WHERE id = %s", (id,))
     mysql.connection.commit()
     cursor.close()
-    
-    cursor = mysql.connection.cursor()
-    cursor.execute("CREATE TABLE temp_customer AS SELECT * FROM customer ORDER BY id")
-    cursor.execute("TRUNCATE TABLE customer")
-    cursor.execute("""
-        INSERT INTO customer (namacustomer, namaperusahaan, tanggalinput, tanggalkirim, telp, alamat, latitude, longitude)
-        SELECT namacustomer, namaperusahaan, tanggalinput, tanggalkirim, telp, alamat, latitude, longitude
-        FROM temp_customer
-    """)
-    cursor.execute("DROP TABLE temp_customer")
-    cursor.execute("ALTER TABLE customer AUTO_INCREMENT = 1")
-    mysql.connection.commit()
-    cursor.close()
     flash("Customer deleted successfully", "success")
     return redirect('/customer')
 
-@app.route('/edit/<int:id>', methods=['POST', 'GET'])
+@app.route('/getedit/<int:id>', methods=['GET'])
+@admin_required
+@login_required
+def getedit(id):
+    cursor = mysql.connection.cursor()
+    cursor.execute("SELECT * FROM customer WHERE id = %s", (id,))
+    edit_customer = cursor.fetchone()
+    cursor.close()
+    if edit_customer:
+        # Ubah data ke format JSON
+        print("edit_customer", edit_customer, flush=True)
+        return jsonify({
+            'id': edit_customer[0],
+            'namacustomer': edit_customer[1],
+            'namaperusahaan': edit_customer[2],
+            'tanggalinput': edit_customer[3],
+            'tanggalkirim': edit_customer[4],
+            'telp': edit_customer[5],
+            'alamat': edit_customer[6],
+            'latitude': edit_customer[7],
+            'longitude': edit_customer[8]
+        })
+    else:
+        return jsonify({'error': 'Data tidak ditemukan'}), 404
+
+@app.route('/edit/<int:id>', methods=['POST'])
 @admin_required
 @login_required
 def edit_customer(id):
     if request.method == 'POST':
-        namacustomer = request.form['namacustomer']
-        namaperusahaan = request.form['namaperusahaan']
-        tanggalkirim = request.form['tanggalkirim']
-        telp = request.form['telp']
-        alamat = request.form['alamat']
-        latitude = request.form['latitude']
-        longitude = request.form['longitude']
-        # Update data customer di database
-        cursor = mysql.connection.cursor()
-        cursor.execute("""
-            UPDATE customer
-            SET namacustomer=%s, namaperusahaan=%s, tanggalkirim=%s, telp=%s, alamat=%s, latitude=%s, longitude=%s
-            WHERE id=%s
-        """, (namacustomer, namaperusahaan, tanggalkirim, telp, alamat, latitude, longitude, id))
-        mysql.connection.commit()
-        cursor.close()
-        flash('Customer updated successfully!', 'success')
-        return redirect('/customer')
-    else:
-        cursor = mysql.connection.cursor()
-        cursor.execute("SELECT * FROM customer WHERE id = %s", (id,))
-        edit_customer = cursor.fetchone()
-        cursor.close()
-        return edit_customer
+        try:
+            namacustomer = request.form['namacustomer']
+            namaperusahaan = request.form['namaperusahaan']
+            tanggalinput = request.form['tanggalinput']
+            tanggalkirim = request.form['tanggal_kirim']
+            telp = request.form['telp']
+            alamat = request.form['alamat']
+            latitude = request.form['latitude']
+            longitude = request.form['longitude']
+            # Update data customer di database
+            cursor = mysql.connection.cursor()
+            cursor.execute("""
+                UPDATE customer
+                SET namacustomer=%s, namaperusahaan=%s, tanggalinput=%s, tanggalkirim=%s, telp=%s, alamat=%s, latitude=%s, longitude=%s
+                WHERE id=%s
+            """, (namacustomer, namaperusahaan, tanggalinput, tanggalkirim, telp, alamat, latitude, longitude, id))
+            mysql.connection.commit()
+            cursor.close()
+            flash(f"Customer '{namacustomer}' updated successfully!", "success")
+            return redirect(url_for('customer'))
+        except Exception as e:
+            flash(f'Error updating customer: {e}', 'danger')
+            print(e)
+            return redirect(url_for('customer'))
 
 @app.route('/driver', methods=['GET', 'POST'])
 @admin_required
@@ -520,5 +534,13 @@ def route_detail(route_id):
         breadcrumb=breadcrumb
     )
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    app.debug = True
+    server = Server(app.wsgi_app)
+    server.watch("*.py")  # Pantau perubahan file Python
+    server.watch("templates/*.html")  # Pantau perubahan HTML
+    server.watch("static/css/*.css")  # Pantau perubahan CSS
+    server.watch("static/js/*.js")  # Pantau perubahan JavaScript
+    server.watch("static/img/*.png")
+    server.serve(port=5000, host='0.0.0.0', debug=True)
     app.run(debug=True)

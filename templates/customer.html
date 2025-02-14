@@ -24,6 +24,7 @@
 
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.css"/>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
+       
         <!-- Title -->
         <title>Customer - PT. Tunas Harapan Baru</title>
     </head>
@@ -82,7 +83,7 @@
                                         <a href="/delete/{{ row[0] }}" type="button" class="btn btn-danger" style="width: 100%;">Delete</a>
                                     </div>
                                     <div class="mb-3">
-                                        <a href="{{ row[0] }}" type="button" class="btn btn-warning" style="width: 100%;"  data-bs-toggle="modal" data-bs-target="#editModal">Edit</a>
+                                        <a data-id="{{ row[0] }}" class="btn btn-warning edit-btn" data-bs-toggle="modal" data-bs-target="#editModal">Edit</a>
                                     </div>
                                 </td>
                             </tr>
@@ -121,7 +122,7 @@
                                 </div>
                                 <div class="mb-3">
                                     <label for="telp" class="form-label">No Telp</label>
-                                    <input type="telp" name="telp" id="telp" class="form-control" pattern="[0-9]{3}-[0-9]{4}-[0-9]{4}" title="Indonesia: +62" required>
+                                    <input type="tel" name="telp" id="telp" class="form-control"  title="Indonesia: +62" required>
                                 </div>
                                 <div class="mb-3">
                                     <label for="alamat" class="form-label">Alamat</label>
@@ -151,36 +152,36 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <form action="/edit/{{customer[0]}}" method="POST">
+                            <form id ="editForm" method="POST" action="/edit/">
                                 <div class="mb-3">
                                     <label for="namacustomer" class="form-label">Nama Customer</label>
-                                    <input type="text" name="namacustomer" id="namacustomer" class="form-control" required value="{{customer.0}}">
+                                    <input type="text" name="namacustomer" id="edit_namacustomer" class="form-control" required>
                                 </div>
                                 <div class="mb-3">
                                     <label for="namaperusahaan" class="form-label">Nama Perusahaan</label>
-                                    <input type="text" name="namaperusahaan" id="namaperusahaan" class="form-control" required value="{{customer[0]}}">
+                                    <input type="text" name="namaperusahaan" id="edit_namaperusahaan" class="form-control" required >
                                 </div>
                                 <div class="mb-3">
                                     <label for="tanggalinput" class="form-label">Tanggal Input</label>
-                                    <input type="datetime-local" name="tanggalinput" id="tanggalinput" readonly required value="{{customer[0]}}">
+                                    <input type="datetime-local" name="tanggalinput" id="edit_tanggalinput" readonly required >
                                 </div>
                                 <div class="mb-3">
                                     <label for="tanggal_kirim" class="form-label">Tanggal Kirim</label>
-                                    <input type="date" name="tanggal_kirim" id="tanggal_kirim" required value="{{customer[0]}}">
+                                    <input type="date" name="tanggal_kirim" id="edit_tanggal_kirim" required >
                                 </div>
                                 <div class="mb-3">
                                     <label for="telp" class="form-label">No Telp</label>
-                                    <input type="telp" name="telp" id="telp" class="form-control" pattern="[0-9]{3}-[0-9]{4}-[0-9]{4}" title="Indonesia: +62" required value="{{customer[0]}}">
+                                    <input type="tel" name="telp" id="edit_telp" class="form-control"  title="Indonesia: +62" required>
                                 </div>
                                 <div class="mb-3">
                                     <label for="alamat" class="form-label">Alamat</label>
-                                    <textarea class="form-control" name="alamat" id="alamat" rows="3" required>{{customer[0]}}</textarea>
+                                    <textarea class="form-control" name="alamat" id="edit_alamat" rows="3" required></textarea>
                                 </div>
 
                                 <!-- Tempatkan Map -->
                                 <div id="map" style="height: 400px;"></div>
-                                <input type="hidden" name="latitude" id="latitude" value="{{customer[0]}}">
-                                <input type="hidden" name="longitude" id="longitude" value="{{customer[0]}}">
+                                <input type="hidden" name="latitude" id="edit_latitude" >
+                                <input type="hidden" name="longitude" id="edit_longitude" >
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                     <button type="submit" class="btn btn-primary">Save changes</button>
@@ -199,165 +200,190 @@
         <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
         <script src="static/js/ORSGeocodingAPI.js"></script>
         <script src="static/js/jquery.js"></script>
+        <script src="static/js/main.js"></script>
+        
         <!-- Custom Script -->
         <script>
-            const phoneInputField = document.querySelector("#telp");
-            const phoneInput = window.intlTelInput(phoneInputField, {
-                initialCountry: "id",
-                customPlaceholder: function(selectedCountryPlaceholder) {
-                return "Contoh: " + selectedCountryPlaceholder; // Menambahkan teks di depan placeholder
-                },
-                utilsScript:
-                "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
-            });
-            document.querySelector("form").addEventListener("submit", function (e) {
+        document.addEventListener("DOMContentLoaded", function () {
+        // Fungsi untuk inisialisasi intlTelInput pada input tertentu
+        function setupIntlTelInput(inputId) {
+            const field = document.querySelector(`#${inputId}`);
+            if (!field) return null; // Jika input tidak ditemukan, lewati
+
+            return {
+                field,
+                phoneInput: window.intlTelInput(field, {
+                    initialCountry: "id", // Set default Indonesia
+                    utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+                }),
+            };
+        }
+
+        // Setup intlTelInput untuk masing-masing modal
+        const addTelp = setupIntlTelInput("telp");
+        const editTelp = setupIntlTelInput("edit_telp");
+
+        // Fungsi validasi untuk modal Add
+        function validateAddTelp(e) {
             e.preventDefault();
-            const phoneNumber = phoneInput.getNumber();
+            if (!addTelp) return; // Jika input tidak ditemukan, abaikan
 
-            if (!phoneInput.isValidNumber()) {
-                alert("Nomor telepon tidak valid. Silakan masukkan nomor telepon yang benar.");
+            const phoneNumber = addTelp.phoneInput.getNumber();
+            if (!addTelp.phoneInput.isValidNumber()) {
+                alert(`Nomor telepon di ${addTelp.field.id} tidak valid. Silakan masukkan nomor yang benar.`);
             } else {
-                console.log("Nomor telepon valid:", phoneNumber);
-                this.submit();
+                console.log(`Nomor telepon valid di ${addTelp.field.id}:`, phoneNumber);
+                e.target.submit();
             }
+        }
+
+        // Fungsi validasi untuk modal Edit
+        function validateEditTelp(e) {
+            e.preventDefault();
+            if (!editTelp) return; // Jika input tidak ditemukan, abaikan
+
+            const phoneNumber = editTelp.phoneInput.getNumber();
+            if (!editTelp.phoneInput.isValidNumber()) {
+                alert(`Nomor telepon di ${editTelp.field.id} tidak valid. Silakan masukkan nomor yang benar.`);
+            } else {
+                console.log(`Nomor telepon valid di ${editTelp.field.id}:`, phoneNumber);
+                e.target.submit();
+            }
+        }
+
+        // Tambahkan event listener ke masing-masing form
+        const addForm = document.querySelector("#addForm"); // Form di AddModal
+        if (addForm) addForm.addEventListener("submit", validateAddTelp);
+
+        const editForm = document.querySelector("#editForm"); // Form di EditModal
+        if (editForm) editForm.addEventListener("submit", validateEditTelp);
+    });
+        // Set tanggal input otomatis
+        function setCurrentDatetime() {
+            const now = new Date();
+
+            // Menyesuaikan waktu lokal ke WIB (UTC+7)
+            const wibOffset = now.getTimezoneOffset() + 420; // Offset dalam menit (420 = 7 jam * 60)
+            const wibDate = new Date(now.getTime() + wibOffset * 60 * 1000);
+
+            // Format tanggal dan waktu untuk input datetime-local
+            const year = wibDate.getFullYear();
+            const month = String(wibDate.getMonth() + 1).padStart(2, '0'); // Bulan dimulai dari 0
+            const date = String(wibDate.getDate()).padStart(2, '0');
+            const hours = String(wibDate.getHours()).padStart(2, '0');
+            const minutes = String(wibDate.getMinutes()).padStart(2, '0');
+
+            const formattedDate = `${year}-${month}-${date}T${hours}:${minutes}`;
+            document.getElementById('tanggalinput').value = formattedDate;
+        }
+
+        window.onload = setCurrentDatetime;
+
+        //ORS GEOCODING API
+    var map;
+    var marker;
+
+    // Batas Pulau Jawa
+    var bounds = L.latLngBounds(
+        L.latLng(-8.793611, 105.305374), // Ujung Barat Daya (Ujung Kulon)
+        L.latLng(-5.832497, 114.623748)  // Ujung Timur Laut (Banyuwangi)
+    );
+
+    document.getElementById('addModal').addEventListener('shown.bs.modal', function () {
+        if (!map) {
+            map = L.map('map', {
+                center: [-7.5, 110.5],
+                zoom: 8,
+                maxBounds: bounds,
+                maxBoundsViscosity: 1.0
             });
 
-            function telpCountry() {
-                var telp = document.getElementById('telp').value;
-                var telpCountry = document.getElementById('telpCountry').value;
-                document.getElementById('telp').value = telpCountry + telp;
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            map.fitBounds(bounds);
+        } else {
+            map.invalidateSize();
+        }
+
+        // Event saat klik peta
+        map.on('click', function (e) {
+            var lat = e.latlng.lat;
+            var lng = e.latlng.lng;
+
+            // Validasi apakah titik dalam batas Pulau Jawa
+            if (!isWithinJawa(lat, lng)) {
+                alert("Titik yang dipilih berada di luar Pulau Jawa. Silakan pilih titik dalam batas Pulau Jawa.");
+                return;
             }
-        </script>
-        <script>
-            //ORS GEOCODING API
-            var map;
-            var marker;
+        
+            document.getElementById('latitude').value = lat;
+            document.getElementById('longitude').value = lng;
 
-            // Batas Pulau Jawa
-            var bounds = L.latLngBounds(
-                L.latLng(-8.793611, 105.305374), // Ujung Barat Daya (Ujung Kulon)
-                L.latLng(-5.832497, 114.623748)  // Ujung Timur Laut (Banyuwangi)
-            );
+            // Pindahkan marker ke lokasi yang diklik
+            if (marker) {
+                marker.setLatLng(e.latlng).update();
+            } else {
+                marker = L.marker(e.latlng).addTo(map);
+            }
 
-            document.getElementById('addModal').addEventListener('shown.bs.modal', function () {
-                if (!map) {
-                    map = L.map('map', {
-                        center: [-7.5, 110.5],
-                        zoom: 8,
-                        maxBounds: bounds,
-                        maxBoundsViscosity: 1.0
-                    });
+            // Panggil fungsi geocoding untuk mendapatkan alamat
+            reverseGeocode(lat, lng);
+        });
+    });
 
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    }).addTo(map);
+    // Fungsi untuk memeriksa apakah titik berada dalam batas Pulau Jawa
+    function isWithinJawa(lat, lng) {
+        return bounds.contains(L.latLng(lat, lng));
+    }
 
-                    map.fitBounds(bounds);
+    // Fungsi untuk melakukan reverse geocoding menggunakan Nominatim (OpenStreetMap)
+    function reverseGeocode(lat, lng) {
+        var url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=id`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.address) {
+                    var addressParts = [];
+                    // Menambahkan berbagai elemen alamat lebih lengkap
+                    if (data.address.house_number) addressParts.push(data.address.house_number);
+                    if (data.address.road) addressParts.push(data.address.road);
+                    if (data.address.suburb) addressParts.push(data.address.suburb);
+                    if (data.address.city) addressParts.push(data.address.city);
+                    if (data.address.state) addressParts.push(data.address.state);
+                    if (data.address.postcode) addressParts.push(data.address.postcode);
+                    if (data.address.country) addressParts.push(data.address.country);
+
+                    // Gabungkan seluruh bagian alamat menjadi satu string
+                    var fullAddress = addressParts.join(', ');
+                    // Jika tidak ada alamat ditemukan, berikan fallback
+                    document.getElementById('alamat').value = fullAddress || "Alamat tidak ditemukan";
                 } else {
-                    map.invalidateSize();
+                    document.getElementById('alamat').value = "Alamat tidak ditemukan";
                 }
-
-                // Event saat klik peta
-                map.on('click', function (e) {
-                    var lat = e.latlng.lat;
-                    var lng = e.latlng.lng;
-
-                    // Validasi apakah titik dalam batas Pulau Jawa
-                    if (!isWithinJawa(lat, lng)) {
-                        alert("Titik yang dipilih berada di luar Pulau Jawa. Silakan pilih titik dalam batas Pulau Jawa.");
-                        return;
-                    }
-                
-                    document.getElementById('latitude').value = lat;
-                    document.getElementById('longitude').value = lng;
-
-                    // Pindahkan marker ke lokasi yang diklik
-                    if (marker) {
-                        marker.setLatLng(e.latlng).update();
-                    } else {
-                        marker = L.marker(e.latlng).addTo(map);
-                    }
-
-                    // Panggil fungsi geocoding untuk mendapatkan alamat
-                    reverseGeocode(lat, lng);
-                });
+            })
+            .catch(error => {
+                console.error('Error fetching geocoding data:', error);
+                document.getElementById('alamat').value = "Gagal mengambil alamat";
             });
+    }
+    </script>
 
-            // Fungsi untuk memeriksa apakah titik berada dalam batas Pulau Jawa
-            function isWithinJawa(lat, lng) {
-                return bounds.contains(L.latLng(lat, lng));
-            }
+    <script>
+        let today = new Date();
 
-            // Fungsi untuk melakukan reverse geocoding menggunakan Nominatim (OpenStreetMap)
-            function reverseGeocode(lat, lng) {
-                var url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=id`;
+        let year = today.getFullYear();
+        let month = (today.getMonth() + 1).toString().padStart(2, '0'); // Bulan dalam format 2 digit
+        let date = today.getDate().toString().padStart(2, '0'); // Tanggal dalam format 2 digit
 
-                fetch(url)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data && data.address) {
-                            var addressParts = [];
-                            // Menambahkan berbagai elemen alamat lebih lengkap
-                            if (data.address.house_number) addressParts.push(data.address.house_number);
-                            if (data.address.road) addressParts.push(data.address.road);
-                            if (data.address.suburb) addressParts.push(data.address.suburb);
-                            if (data.address.city) addressParts.push(data.address.city);
-                            if (data.address.state) addressParts.push(data.address.state);
-                            if (data.address.postcode) addressParts.push(data.address.postcode);
-                            if (data.address.country) addressParts.push(data.address.country);
+        let dateStr = `${year}-${month}-${date}`;
 
-                            // Gabungkan seluruh bagian alamat menjadi satu string
-                            var fullAddress = addressParts.join(', ');
-                            // Jika tidak ada alamat ditemukan, berikan fallback
-                            document.getElementById('alamat').value = fullAddress || "Alamat tidak ditemukan";
-                        } else {
-                            document.getElementById('alamat').value = "Alamat tidak ditemukan";
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching geocoding data:', error);
-                        document.getElementById('alamat').value = "Gagal mengambil alamat";
-                    });
-            }
-
-            </script>
-
-            <script>
-            // Set tanggal input otomatis
-            function setCurrentDatetime() {
-                const now = new Date();
-
-                // Menyesuaikan waktu lokal ke WIB (UTC+7)
-                const wibOffset = now.getTimezoneOffset() + 420; // Offset dalam menit (420 = 7 jam * 60)
-                const wibDate = new Date(now.getTime() + wibOffset * 60 * 1000);
-
-                // Format tanggal dan waktu untuk input datetime-local
-                const year = wibDate.getFullYear();
-                const month = String(wibDate.getMonth() + 1).padStart(2, '0'); // Bulan dimulai dari 0
-                const date = String(wibDate.getDate()).padStart(2, '0');
-                const hours = String(wibDate.getHours()).padStart(2, '0');
-                const minutes = String(wibDate.getMinutes()).padStart(2, '0');
-
-                const formattedDate = `${year}-${month}-${date}T${hours}:${minutes}`;
-                document.getElementById('tanggalinput').value = formattedDate;
-            }
-
-            window.onload = setCurrentDatetime;
-        </script>
-
-        <script>
-            let today = new Date();
-
-            let year = today.getFullYear();
-            let month = (today.getMonth() + 1).toString().padStart(2, '0'); // Bulan dalam format 2 digit
-            let date = today.getDate().toString().padStart(2, '0'); // Tanggal dalam format 2 digit
-
-            let dateStr = `${year}-${month}-${date}`;
-
-            let input = document.querySelector('[name=tanggal_kirim]');
-            if (input) {
-                input.setAttribute('min', dateStr);
-            }
-        </script>
-    </body>
-    </html>
+        let input = document.querySelector('[name=tanggal_kirim]');
+        if (input) {
+            input.setAttribute('min', dateStr);
+        }
+    </script>
+</body>
+</html>
