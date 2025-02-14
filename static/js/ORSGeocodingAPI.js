@@ -6,6 +6,7 @@
     const alamatTextarea = document.getElementById('alamat');
     const modal = document.querySelector('.modal'); // Pastikan ini referensi ke modal Anda
     let suggestionBox;
+    
 
     // Fungsi untuk menampilkan saran alamat
     function displaySuggestions(suggestions) {

@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!--  Membuat halaman responsif agar cocok untuk perangkat dengan berbagai ukuran layar.-->
 
         <!-- Favicons -->
-        <link href="assets/img/favicon.png" rel="icon">
+        <link href="static/img/logo_THB1.png" rel="icon">
         <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 
         <!-- Google Fonts -->
@@ -13,11 +13,11 @@
         <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
 
         <!-- Custom CSS -->
-        <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='css/index.css')}}">
         <link href="static/css/style.css" rel="stylesheet">
 
         <!-- Vendor CSS Files -->
         <link href="static/bootstrap5/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
 
         <!-- Leaflet CSS for Map -->
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
@@ -30,11 +30,10 @@
     <body>
         {{navbar|safe}}
         <main id="main" class="main">
-            {{ navbar|safe }}
             {% with messages = get_flashed_messages(with_categories=true) %}
               {% if messages %}
                   {% for category, message in messages %}
-                      <div class="alert alert-{{ category }}">{{ message }}</div>
+                      <div class="flash alert alert-{{ category }}">{{ message }}</div>
                   {% endfor %}
             {% endif %}
             {% endwith %}
@@ -80,10 +79,10 @@
                                 <td>{{row[6]}}</td>
                                 <td>
                                     <div class="mb-3">
-                                        <a href="/delete/{{row[0]}}" type="button" class="btn btn-danger" style="width: 100%;">Delete</a>
+                                        <a href="/delete/{{ row[0] }}" type="button" class="btn btn-danger" style="width: 100%;">Delete</a>
                                     </div>
                                     <div class="mb-3">
-                                        <a href="/edit/{{row[0]}}" type="button" class="btn btn-warning" style="width: 100%;">Edit</a>
+                                        <a href="{{ row[0] }}" type="button" class="btn btn-warning" style="width: 100%;"  data-bs-toggle="modal" data-bs-target="#editModal">Edit</a>
                                     </div>
                                 </td>
                             </tr>
@@ -117,12 +116,12 @@
                                     <input type="datetime-local" name="tanggalinput" id="tanggalinput" readonly required>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="tanggalkirim" class="form-label">Tanggal Kirim</label>
-                                    <input type="date" name="tanggalkirim" id="tanggalkirim" required>
+                                    <label for="tanggal_kirim" class="form-label">Tanggal Kirim</label>
+                                    <input type="date" name="tanggal_kirim" id="tanggal_kirim" required>
                                 </div>
                                 <div class="mb-3">
                                     <label for="telp" class="form-label">No Telp</label>
-                                    <input type="telp" name="telp" id="telp" class="form-control" pattern="+62-[0-9]{3}-[0-9]{3}-[0-9]{3}" required>
+                                    <input type="telp" name="telp" id="telp" class="form-control" pattern="[0-9]{3}-[0-9]{4}-[0-9]{4}" title="Indonesia: +62" required>
                                 </div>
                                 <div class="mb-3">
                                     <label for="alamat" class="form-label">Alamat</label>
@@ -143,6 +142,54 @@
                     </div>
                 </div>
             </div>
+
+            <div class="modal" id="editModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Edit Data Customer</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form action="/edit/{{customer[0]}}" method="POST">
+                                <div class="mb-3">
+                                    <label for="namacustomer" class="form-label">Nama Customer</label>
+                                    <input type="text" name="namacustomer" id="namacustomer" class="form-control" required value="{{customer.0}}">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="namaperusahaan" class="form-label">Nama Perusahaan</label>
+                                    <input type="text" name="namaperusahaan" id="namaperusahaan" class="form-control" required value="{{customer[0]}}">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="tanggalinput" class="form-label">Tanggal Input</label>
+                                    <input type="datetime-local" name="tanggalinput" id="tanggalinput" readonly required value="{{customer[0]}}">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="tanggal_kirim" class="form-label">Tanggal Kirim</label>
+                                    <input type="date" name="tanggal_kirim" id="tanggal_kirim" required value="{{customer[0]}}">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="telp" class="form-label">No Telp</label>
+                                    <input type="telp" name="telp" id="telp" class="form-control" pattern="[0-9]{3}-[0-9]{4}-[0-9]{4}" title="Indonesia: +62" required value="{{customer[0]}}">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="alamat" class="form-label">Alamat</label>
+                                    <textarea class="form-control" name="alamat" id="alamat" rows="3" required>{{customer[0]}}</textarea>
+                                </div>
+
+                                <!-- Tempatkan Map -->
+                                <div id="map" style="height: 400px;"></div>
+                                <input type="hidden" name="latitude" id="latitude" value="{{customer[0]}}">
+                                <input type="hidden" name="longitude" id="longitude" value="{{customer[0]}}">
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    <button type="submit" class="btn btn-primary">Save changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
 
         <!-- Vendor JS Files -->
@@ -151,15 +198,38 @@
         <!-- Leaflet JS for Map -->
         <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
         <script src="static/js/ORSGeocodingAPI.js"></script>
-        <script src="static/js/jquery-min.js"></script>
+        <script src="static/js/jquery.js"></script>
         <!-- Custom Script -->
         <script>
             const phoneInputField = document.querySelector("#telp");
             const phoneInput = window.intlTelInput(phoneInputField, {
+                initialCountry: "id",
+                customPlaceholder: function(selectedCountryPlaceholder) {
+                return "Contoh: " + selectedCountryPlaceholder; // Menambahkan teks di depan placeholder
+                },
                 utilsScript:
                 "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
             });
+            document.querySelector("form").addEventListener("submit", function (e) {
+            e.preventDefault();
+            const phoneNumber = phoneInput.getNumber();
 
+            if (!phoneInput.isValidNumber()) {
+                alert("Nomor telepon tidak valid. Silakan masukkan nomor telepon yang benar.");
+            } else {
+                console.log("Nomor telepon valid:", phoneNumber);
+                this.submit();
+            }
+            });
+
+            function telpCountry() {
+                var telp = document.getElementById('telp').value;
+                var telpCountry = document.getElementById('telpCountry').value;
+                document.getElementById('telp').value = telpCountry + telp;
+            }
+        </script>
+        <script>
+            //ORS GEOCODING API
             var map;
             var marker;
 
@@ -220,7 +290,7 @@
 
             // Fungsi untuk melakukan reverse geocoding menggunakan Nominatim (OpenStreetMap)
             function reverseGeocode(lat, lng) {
-                var url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1`;
+                var url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=id`;
 
                 fetch(url)
                     .then(response => response.json())
@@ -250,6 +320,9 @@
                     });
             }
 
+            </script>
+
+            <script>
             // Set tanggal input otomatis
             function setCurrentDatetime() {
                 const now = new Date();
@@ -270,7 +343,21 @@
             }
 
             window.onload = setCurrentDatetime;
+        </script>
 
+        <script>
+            let today = new Date();
+
+            let year = today.getFullYear();
+            let month = (today.getMonth() + 1).toString().padStart(2, '0'); // Bulan dalam format 2 digit
+            let date = today.getDate().toString().padStart(2, '0'); // Tanggal dalam format 2 digit
+
+            let dateStr = `${year}-${month}-${date}`;
+
+            let input = document.querySelector('[name=tanggal_kirim]');
+            if (input) {
+                input.setAttribute('min', dateStr);
+            }
         </script>
     </body>
     </html>

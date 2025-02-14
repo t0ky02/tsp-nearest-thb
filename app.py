@@ -1,14 +1,16 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, make_response
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, make_response
 from flask_mysqldb import MySQL
-from flask_login import LoginManager, UserMixin, login_user, logout_user
+from MySQLdb.cursors import DictCursor
 import requests
-import os
 import numpy as np
 import requests
 import math
-import jsonify
-from utils import login_required
+import json
+from utils import login_required, admin_required, driver_required
 from datetime import datetime, timedelta
+import openrouteservice
+from markupsafe import escape
+
 app = Flask(__name__)
 
 # Konfigurasi Flask dan MySQL
@@ -21,40 +23,64 @@ app.config['SECRET_KEY'] = '@#$123456&*()'
 app.config['MYSQL_PORT'] = 3306
 navbar_admin = app.config['NAVBAR_ADMIN']
 navbar_driver = app.config['NAVBAR_DRIVER']
+app.config['SESSION_TYPE'] = 'filesystem'
 # Konfigurasi Flask-Session
-app.config['SESSION_PERMANENT'] = True  # Aktifkan session permanent
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=1)  # Durasi session (7 hari)
-app.config['SESSION_USE_SIGNER'] = True
+'''
+
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)  # Durasi session (7 hari)
+'''
+app.config['SESSION_PERMANENT'] = False # Aktifkan session permanent
+app.config['SESSION_USE_SIGNER'] = False
 
 mysql = MySQL(app)
-login_manager = LoginManager(app)
-login_manager.login_view = 'login'
-login_manager.session_protection = 'strong'
+
+def breadcrumb_url():
+    referer = request.referrer  # Mendapatkan URL sebelumnya
+    if referer and 'tsp' in referer:
+        breadcrumb = [
+            {'name': 'Home', 'url': '/index'},
+            {'name': 'TSP', 'url': '/tsp'},
+            {'name': 'Rute Detail', 'url': None}
+        ]
+    else:
+        breadcrumb = [
+            {'name': 'Home', 'url': '/index'},
+            {'name': 'Daftar Pengiriman', 'url': '/daftar_pengiriman'},
+            {'name': 'Rute Detail', 'url': None}
+        ]
+    return breadcrumb
+
 @app.route('/', methods=['GET', 'POST'])
 def login():
+    print("Session setelah logout:", session)  # Debug setelah logout
+
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+
         cursor = mysql.connection.cursor()
         cursor.execute("SELECT * FROM user WHERE username = %s AND password = %s", (username, password))
         user = cursor.fetchone()
         cursor.close()
         if user:
-            session['user_id'] = user[1]
-            login_user(user[1])
+            session['user_id'] = user[0]  # ID user
+            session['username'] = user[1]  # Username
+            session['role'] = user[3]  # Role (admin or driver)
+            
             flash('Login successful!', 'success')
             return redirect(url_for('index'))
         else:
             flash('Invalid credentials, please try again.', 'danger')
             return redirect(url_for('login'))
-    return render_template('login.html') 
+    return render_template('login.html')
 
-@app.route('/logout', methods=['GET'])
-@login_required
+@app.route('/logout')
 def logout():
     session.clear()
-    logout_user
-    return redirect(url_for('login'))
+    response = make_response(redirect(url_for('login')))
+    response.delete_cookie('session')  # Hapus cookie session
+    print ()
+    return response
 
 @app.context_processor
 def inject_enumerate():
@@ -63,17 +89,23 @@ def inject_enumerate():
 @app.route('/index')
 @login_required
 def index():
-    flash('Login successful!', 'success')
-    return render_template('index.html', navbar=navbar_admin)
+    session_name = session.get('username', None)
+    if session['role'] == 'admin':
+        return render_template('index.html', navbar=navbar_admin)
+    elif session['role'] == 'driver':
+        
+        navbar_driver_name = navbar_driver.replace("{{ session_name }}", session_name or "Guest")
+        return render_template('index.html', navbar=navbar_driver_name)
 
 @app.route('/customer', methods=['GET', 'POST'])
+@admin_required
 @login_required
 def customer():
     cursor = mysql.connection.cursor()
     cursor.execute(
         "SELECT `id`, `namacustomer`, `namaperusahaan`, `tanggalinput`, `tanggalkirim`, `telp`, `alamat`, `latitude`, `longitude` FROM customer"
     )
-    customer_data = cursor.fetchall()
+    display_customer = cursor.fetchall()
     cursor.close()
 
     if request.method == 'POST':
@@ -96,11 +128,11 @@ def customer():
         cursor.close()
         flash('Customer added successfully!', 'success')
         flash(f'Customer "{namacustomer}" berhasil ditambahkan!', 'success')
-
         return redirect(url_for('customer'))
-    return render_template('customer.html', navbar=navbar_admin, customer=customer_data)
+    return render_template('customer.html', navbar=navbar_admin, customer = display_customer)
 
 @app.route('/delete/<int:id>', methods=['GET', 'POST'])
+@admin_required
 @login_required
 def delete(id):
     cursor = mysql.connection.cursor()
@@ -124,6 +156,7 @@ def delete(id):
     return redirect('/customer')
 
 @app.route('/edit/<int:id>', methods=['POST', 'GET'])
+@admin_required
 @login_required
 def edit_customer(id):
     if request.method == 'POST':
@@ -134,7 +167,6 @@ def edit_customer(id):
         alamat = request.form['alamat']
         latitude = request.form['latitude']
         longitude = request.form['longitude']
-
         # Update data customer di database
         cursor = mysql.connection.cursor()
         cursor.execute("""
@@ -145,22 +177,21 @@ def edit_customer(id):
         mysql.connection.commit()
         cursor.close()
         flash('Customer updated successfully!', 'success')
-        return redirect('/customer')  # Atau sesuai kebutuhan Anda
+        return redirect('/customer')
     else:
         cursor = mysql.connection.cursor()
         cursor.execute("SELECT * FROM customer WHERE id = %s", (id,))
-        customer = cursor.fetchone()
+        edit_customer = cursor.fetchone()
         cursor.close()
-        print(customer[6])
-        return render_template('edit_customer.html', customer=customer, navbar=navbar_admin)
-
+        return edit_customer
 
 @app.route('/driver', methods=['GET', 'POST'])
+@admin_required
 @login_required
 def driver():
     cursor = mysql.connection.cursor()
     cursor.execute(
-        "SELECT `id`, `nama_driver`, `telp`, `platnomor` FROM driver"
+        "SELECT `id`, `nama`, `telp`, `platnomor` FROM driver"
     )
     driver = cursor.fetchall()
     cursor.close()
@@ -174,7 +205,7 @@ def driver():
         
         # Validasi username unik
         cursor = mysql.connection.cursor()
-        cursor.execute("SELECT * FROM driver WHERE username LIKE %s", (f"{username}%",))
+        cursor.execute("SELECT * FROM user WHERE username LIKE %s", (f"{username}%",))
         existing_usernames = cursor.fetchall()
         if existing_usernames:
             username += str(len(existing_usernames) + 1)
@@ -186,9 +217,20 @@ def driver():
         # Masukkan data ke database
         try:
             cursor.execute("""
-                INSERT INTO driver (nama_driver, telp, platnomor, username, password)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (nama_driver, telp, platnomor, username, password))
+                INSERT INTO user (username, password, role)
+                VALUES (%s, %s, 'driver')
+            """, (username, password))
+            
+            # Ambil ID driver yang baru ditambahkan
+            driver_id = cursor.lastrowid
+
+            # Masukkan data driver ke tabel driver
+            cursor.execute("""
+                INSERT INTO driver (driver_id, nama, platnomor, telp)
+                VALUES (%s, %s, %s, %s)
+            """, (driver_id, nama_driver, platnomor, telp))
+
+            # Commit transaksi
             mysql.connection.commit()
             flash(f"Driver berhasil ditambahkan! Username: {username}, Password: {password}", "success")
         except Exception as e:
@@ -199,6 +241,7 @@ def driver():
     return render_template('driver.html', navbar=navbar_admin, driver=driver)
 
 @app.route('/delete_driver/<int:id>', methods=['GET', 'POST'])
+@admin_required
 @login_required
 def delete_driver(id):
     cursor = mysql.connection.cursor()
@@ -207,54 +250,6 @@ def delete_driver(id):
     cursor.close()
     flash("Driver deleted successfully", "success")
     return redirect('/driver')
-
-def get_ors_route(locations):
-    """
-    Menggunakan OpenRouteService API untuk mendapatkan rute.
-    """
-    api_key = '5b3ce3597851110001cf62485c8ef8997b5a46b6b0cf38fca040016e'  # Masukkan API Key Anda
-    base_url = "https://api.openrouteservice.org/v2/directions/driving-car"
-    
-    # Format koordinat dalam array [longitude, latitude]
-    coordinates = [[lon, lat] for lat, lon in locations]
-    payload = {"coordinates": coordinates}
-    
-    headers = {
-        "Authorization": api_key,
-        "Content-Type": "application/json"
-    }
-    
-    try:
-        # Kirimkan request POST
-        response = requests.post(base_url, json=payload, headers=headers)
-        
-        if response.status_code == 200:
-            data = response.json()
-            # Ambil jarak total dari respons API (dalam meter)
-            return data
-        else:
-            print("Error: Invalid response from API.")
-            print("Status Code:", response.status_code)
-            print("Response Content:", response.text)
-    except requests.exceptions.RequestException as e:
-        print(f"Request failed: {e}")
-    return None
-
-def haversine(lat1, lon1, lat2, lon2):
-    """
-    Menghitung jarak Haversine antara dua titik berdasarkan latitude dan longitude.
-    Menghasilkan jarak dalam kilometer.
-    """
-    R = 6371  # Radius bumi dalam kilometer
-    phi1 = math.radians(lat1)  # Mengonversi latitude dari derajat ke radian
-    phi2 = math.radians(lat2)
-    delta_phi = math.radians(lat2 - lat1)  # Selisih latitude
-    delta_lambda = math.radians(lon2 - lon1)  # Selisih longitude
-    
-    a = math.sin(delta_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    
-    return R * c  # Jarak dalam kilometer
 
 def build_actual_distance_matrix(coordinates):
     """
@@ -291,8 +286,7 @@ def build_actual_distance_matrix(coordinates):
         print(f"API Request Error: {e}")
         return None
 
-
-def nearest_neighbor_algorithm(distance_matrix):
+def nearest_neighbor_algorithm(distance_matrix):  #algoritma
     """
     Algoritma Nearest Neighbor untuk menyelesaikan TSP menggunakan matriks jarak asli.
     """
@@ -321,8 +315,9 @@ def nearest_neighbor_algorithm(distance_matrix):
 
     return route
 
-
+################## TSP ##################
 @app.route('/tsp', methods=['GET', 'POST'])
+@admin_required
 @login_required
 def tsp():
     # Mengambil data customer
@@ -330,32 +325,30 @@ def tsp():
     cursor.execute("SELECT id, namacustomer, namaperusahaan, tanggalinput, tanggalkirim, telp, alamat, latitude, longitude FROM customer")
     customers = cursor.fetchall()
     # Mengambil data driver
-    cursor.execute("SELECT id, nama_driver FROM driver")
+    cursor.execute("SELECT id, nama FROM driver")
     drivers = cursor.fetchall()
     cursor.close()
     
     cursor = mysql.connection.cursor()
     cursor.execute("""
-        SELECT routes.id, driver.nama_driver, routes.tanggal_kirim, routes.total_distance
+        SELECT routes.id, driver.nama, routes.tanggal_kirim, routes.total_distance
         FROM routes
         JOIN driver ON routes.driver_id = driver.id
     """)
     routes_list = cursor.fetchall()
     cursor.close()
 
-    company_location = -6.218400187288391, 106.4833542644175
+    company_location =[-6.218400187288391, 106.4833542644175]
     if request.method == 'POST':
         selected_driver = request.form.get('selected_driver')
         selected_customers = request.form.getlist('selected_customers')  # List of customer IDs
         tanggal_kirim = request.form['tanggal_kirim']
-        print(f"Selected Customers: {selected_customers}")
-        print(f"Selected Driver: {selected_driver}")
         if not selected_driver or not selected_customers:
             return "Driver atau customer belum dipilih!", 400
 
         # Ambil data customer yang dipilih
         selected_customers = [c for c in customers if str(c[0]) in selected_customers]
-        coordinates = [company_location] + [(float(c[7]), float(c[8])) for c in selected_customers]
+        coordinates = [company_location] + [[float(c[7]), float(c[8])] for c in selected_customers]
         
         # Membuat matriks jarak
         distance_matrix = build_actual_distance_matrix(coordinates)
@@ -372,10 +365,6 @@ def tsp():
             'route_order': route
         }
 
-        print(f"Driver ID: {selected_driver}")
-        print(f"Total Distance: {route_details['total_distance']}")
-        print(f"Route Details: {route_details}")
-        print(f"Route Order: {route_details['route_order']}")
         cursor = mysql.connection.cursor()
         cursor.execute("""
             INSERT INTO routes (driver_id, total_distance, tanggal_kirim, route)
@@ -409,6 +398,7 @@ def tsp():
         route_list = routes_list
     )
 
+############### DELETE ROUTE ###################
 @app.route('/delete_route/<int:id>', methods=['GET', 'POST'])
 @login_required
 def delete_route(id):
@@ -420,74 +410,115 @@ def delete_route(id):
     flash("Route deleted successfully", "success")
     return redirect(url_for('tsp'))
 
-
-@app.route('/login_driver')
-def login_driver():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        cursor = mysql.connection.cursor()
-        cursor.execute("SELECT * FROM driver WHERE username = %s AND password = %s", (username, password))
-        driver = cursor.fetchone()
-        cursor.close()
-        if driver and 'user_id' in session:
-            session['user_id'] = driver[0]
-            session['driver_name'] = driver[3]
-            flash('Login successful!', 'success')
-            print(f"Driver Name Stored in Session: {session['driver_name']}")  # Debugging
-            return redirect(url_for('index_driver'))
-        else:
-            flash('Invalid credentials, please try again.', 'danger')
-            return redirect(url_for('login_driver'))
-    return render_template('login_driver.html')
-
-@app.route('/index_driver', methods=['GET', 'POST'])
-@login_required
-def index_driver():
-    session['user_id'] = driver[0]
-    session['driver_name'] = driver[3]
-    driver_name = session.get('driver_name', None)
-
-    navbar_with_driver_name = navbar_driver.replace("{{ driver_name }}", driver_name or "Guest")
-
-    return render_template('index_driver.html', navbar=navbar_with_driver_name)
-    #return render_template('index_driver.html', driver_name=driver_name,navbar=navbar_driver)
-
-@app.route('/driver_rute', methods=['GET'])
+@app.route('/daftar_pengiriman', methods=['GET'])
+@driver_required
 @login_required
 def driver_routes():
+    user_id = session.get('user_id', None)
+    session_name = session.get('username', None)
+    navbar_driver_name = navbar_driver.replace("{{ session_name }}", session_name or "Guest")
     cursor = mysql.connection.cursor()
-    driver_id = session.get('user_id')
     cursor.execute("""
-        SELECT routes.id, driver.nama_driver, routes.total_distance ,routes.tanggal_kirim, routes.route
+        SELECT id from driver WHERE driver_id = %s
+    """, [user_id]
+    )
+    get_id_from_driver = cursor.fetchall()
+    driver_id = get_id_from_driver[0]
+    print(driver_id)
+    cursor.close()
+
+    cursor = mysql.connection.cursor()
+    cursor.execute("""
+        SELECT routes.id, routes.total_distance, routes.tanggal_kirim, routes.route
         FROM routes
         JOIN driver ON routes.driver_id = driver.id
         WHERE routes.driver_id = %s
-    """, [driver_id])
+    """, [driver_id]
+    )
     routes = cursor.fetchall()
     cursor.close()
-    print(f"Session user_id: {session.get('user_id')}")
-    driver_name = session.get('driver_name', None)
+    return render_template('daftar_rute.html', routes_list=routes, navbar=navbar_driver_name)
 
-    navbar_with_driver_name = navbar_driver.replace("{{ driver_name }}", driver_name or "Guest")
 
-    return render_template('driver_rute.html', routes_list=routes, navbar=navbar_with_driver_name)
+@app.route('/account_settings', methods=['GET', 'POST'])
+@login_required
+@driver_required
+def account_settings():
+    session_name = session.get('username', None)
+    navbar_driver_name = navbar_driver.replace("{{ session_name }}", session_name or "Guest")
+    return render_template('account_settings.html', navbar=navbar_driver_name)
 
+################## DETAIL ROUTE ##################
 @app.route('/route_detail/<int:route_id>', methods=['GET'])
 @login_required
 def route_detail(route_id):
-    cursor = mysql.connection.cursor()
+
+    breadcrumb = breadcrumb_url()
+
+    cursor = mysql.connection.cursor(DictCursor)
     cursor.execute("""
-        SELECT routes.id, driver.nama_driver, routes.total_distance, routes.created_at ,routes.tanggal_kirim, routes.route
+        SELECT routes.id, driver.nama, routes.total_distance, routes.created_at ,routes.tanggal_kirim, routes.route
         FROM routes
-        JOIN driver ON routes.driver_id = driver.id
+        JOIN driver ON routes.driver_id = driver.id ### Perbaiki baris ini
         WHERE routes.id = %s
     """, [route_id])
     route = cursor.fetchone()
     cursor.close()
-    
-    return render_template('route_detail.html', route_id=route, navbar=navbar_admin)                
 
+    route['route'] = json.loads(route['route'])
+    print("f daftar route", route['route'])
+
+    cursor = mysql.connection.cursor(DictCursor)
+    cursor.execute("""
+        SELECT c.namacustomer, c.namaperusahaan, c.telp, c.alamat, rd.order_index
+        FROM route_details rd
+        JOIN customer c ON rd.customer_id = c.id
+        WHERE rd.route_id = %s
+        ORDER BY rd.order_index
+    """, [route_id])
+    route_detail = cursor.fetchall()
+    cursor.close()
+
+    # Proses jalur dengan OpenRouteService
+    ORS_API_KEY = "5b3ce3597851110001cf62485c8ef8997b5a46b6b0cf38fca040016e"  # Ganti dengan API Key Anda
+    client = openrouteservice.Client(key=ORS_API_KEY)
+
+    # Ubah koordinat ke format yang benar untuk OpenRouteService (lng, lat)
+    coordinates = [(lng, lat) for lat, lng in route['route']]
+
+    try:
+        response = client.directions(
+            coordinates=coordinates,
+            profile="driving-car",
+            format="geojson"
+        )
+        if 'features' in response and response['features']:
+            route_data = response['features'][0]  # Ambil fitur pertama
+            geometry = route_data.get('geometry', {}).get('coordinates', [])
+            properties = route_data.get('properties', {})
+
+            print("Rute berhasil diambil!")
+            # print("Koordinat geometry:", geometry)
+            print("Ringkasan:", properties.get('summary', {}))
+            
+            route_geometry = json.dumps(geometry)
+        else:
+            print("Tidak ada data rute yang ditemukan dalam respons ORS")
+            #print("ORS Response:", response)  # Tambahkan ini untuk debugging
+            route_geometry = None
+    except Exception as e:
+        print(f"Error fetching route: {e}")
+        route_geometry = None
+    navbar = navbar_admin if session['role'] == 'admin' else navbar_driver.replace("{{ session_name }}", session.get('username', 'Guest'))
+
+    return render_template(
+        'route_detail.html',
+        route_id=route,
+        navbar=navbar,
+        route_detail=route_detail,
+        route_geometry= route_geometry,
+        breadcrumb=breadcrumb
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)

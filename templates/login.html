@@ -7,12 +7,13 @@
     <link rel="stylesheet" href="{{url_for('static', filename='bootstrap5/css/bootstrap.min.css')}}">
     <script src="{{ url_for('static', filename='bootstrap5/js/bootstrap.min.js')}}"></script>
     <link href="static/css/style.css" rel="stylesheet">
+    <script src="/static/js/jquery.js"></script>
     <script src="/static/js/main.js"></script>
     <title>Login - PT. Tunas Harapan Baru</title>
 </head>
 <body>
     <div class="container">
-        <img class="background-logo" src="/static/img/logo THB.png" alt="">
+        <img class="background-logo" src="/static/img/logo_THB1.png" alt="">
     </div>
     <div class="container">
         <div class="d-flex align-items-center justify-content-center vh-100">
@@ -20,13 +21,13 @@
                 <div class="col-md-12">
                     
                     <p class="text-center">Traveling Salesman Problem Web App</p>
-                    <p class="text-center"><b>WELCOME - ADMIN</b></p>
+                    <p class="text-center"><b>WELCOME</b></p>
                 </div>
                 <div class="col-md-12">
                     {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
-                            <div class="alert alert-{{ category }} close">{{ message }}</div>
+                            <div class="flash alert alert-{{ category }} close">{{ message }}</div>
                         {% endfor %}
                     {% endif %}
                     {% endwith %}
@@ -44,9 +45,6 @@
                                 <button type="submit" class="btn btn-primary">Login</button>
                             </div>
                         </form>
-                    </div>
-                    <div class="text-center">
-                        Ingin login sebagai driver? <a href="/login_driver">Klik disini</a>
                     </div>
                 </div>
             </div>

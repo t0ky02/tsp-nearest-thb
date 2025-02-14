@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Favicons -->
-    <link href="assets/img/favicon.png" rel="icon">
+    <link href="static/img/logo_THB1.png" rel="icon">
     <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 
     <!-- Google Fonts -->
@@ -13,8 +13,8 @@
     <link href="https://fonts.googleapis.com/css?family=Open+Sans|Nunito|Poppins" rel="stylesheet">
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='css/index.css')}}">
-    <link href="{{url_for('static', filename='css/style.css')}}" rel="stylesheet">
+    <link href="{{url_for('static', filename='/css/style.css')}}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
 
     <!-- Vendor CSS Files -->
     <link href="{{url_for('static', filename='bootstrap5/css/bootstrap.min.css')}}" rel="stylesheet">
@@ -28,27 +28,126 @@
     {{navbar|safe}}
     <main id="main" class="main">
         <div class="pagetitle">
-            <h1>Detail Rute TSP</h1>
+            <h1>Rute Detail</h1>
+            <nav>
+            <ol class="breadcrumb">
+                {% for item in breadcrumb %}
+                    {% if item.url %}
+                        <li class="breadcrumb-item"><a href="{{ item.url }}">{{ item.name }}</a></li>
+                    {% else %}
+                        <li class="breadcrumb-item active">{{ item.name }}</li>
+                    {% endif %}
+                {% endfor %}
+            </ol>
+            </nav>
+        </div><!-- End Page Title -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h3>Informasi Rute</h3>
+                    <table class="table table-bordered" width="50%">
+                        <tr>
+                            <th>ID Rute</th> 
+                            <td>{{route_id.id}}</td>
+                        </tr>
+                        <tr>
+                            <th>Nama Driver</th> 
+                            <td>{{route_id.nama}}</td>
+                        </tr>
+                        <tr>
+                            <th>Tanggal Buat</th>
+                            <td>{{route_id.created_at}}</td>
+                        </tr>
+                        <tr>
+                            <th>Tanggal Kirim</th> 
+                            <td>{{route_id.tanggal_kirim}}</td>
+                        </tr>
+                        <tr>
+                            <th>Total Jarak</th> 
+                            <td>{{route_id.total_distance}} Km</td>
+                        </tr>
+                        <tr>
+                            <th>List Rute</th> 
+                            <td>{{route_id.route}}</td>
+                        </tr>
+                    </table>
+                    <table class="table table-bordered" width="50%">
+                        <tr>
+                            <th>Point</th>
+                            <th>Nama Customer</th>
+                            <th>Nama Perusahaan</th>
+                            <th>No Telp</th>
+                            <th>Alamat</th>
+                        </tr>
+                        {% for detail in route_detail %}
+                        <tr>
+                            <td>{{detail.order_index}}</td>
+                            <td>{{detail.namacustomer}}</td>
+                            <td>{{detail.namaperusahaan}}</td>
+                            <td>{{detail.telp}}</td>
+                            <td>{{detail.alamat}}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                    <div id="map" style="height: 500px; width: 100%;"></div>
+                    
+                    <!-- Script untuk Menampilkan Peta -->
+                    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+                
+                    <script>
+                        
+                        var map = L.map('map').setView([-7.614529, 110.712247], 12);
+
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxZoom: 19,
+                            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                        }).addTo(map);
+
+                        const routes = {{ route_id.route | tojson }};
+                        const route_detail = {{ route_detail | tojson }};
+                        const route_geometry = {{ route_geometry | safe }};  // Data rute dari OpenRouteService (sudah dalam format JSON)
+
+                        if (routes.length > 0) {
+                            // Tambahkan marker untuk setiap titik dalam rute
+                            routes.forEach((coord, index) => {
+                                let marker = L.marker([coord[0], coord[1]]).addTo(map);
+                                if (index === 0) {
+                                    marker.bindPopup('Titik Awal: Perusahaan Anda').openPopup();
+                                } else {
+                                    const customer = route_detail[index - 1];
+                                    if (customer) {
+                                        marker.bindPopup(
+                                            `<b>Point ${index}</b><br>
+                                            ${customer.namacustomer}<br>
+                                            ${customer.namaperusahaan}<br>
+                                            ${customer.alamat}`
+                                        );
+                                    }
+                                }
+                            });
+
+                            // Tambahkan polyline ke peta berdasarkan route_geometry
+                            if (route_geometry.length > 0) {
+                                let polyline = L.polyline(route_geometry.map(coord => [coord[1], coord[0]]), {
+                                    color: 'blue',
+                                    weight: 3
+                                }).addTo(map);
+                                map.fitBounds(polyline.getBounds());
+                            } else {
+                                console.error("Gagal memuat rute");
+                            }
+                        }
+                        
+                        
+                    </script>
+                    
+                </div>
+            </div>
         </div>
 
-        <!-- Tampilkan Total Jarak -->
-        <h3>Informasi Rute</h3>
-
-        <!-- Tabel Detail Rute -->
-        <h3>Detail Lokasi Pemberhentian</h3>
-        
 
         <!-- Peta -->
-        <h3>Peta Rute</h3>
-        {{route_id}}
-        <div id="map" style="height: 500px; width: 100%;"></div>
         
-        <!-- Script untuk Menampilkan Peta -->
-        <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
-
-
-        <!-- Tombol Kembali -->
-        <a href="{{ url_for('tsp') }}" class="btn btn-primary mt-3">Kembali ke Daftar Rute</a>
     </main>
 </body>
 </html>

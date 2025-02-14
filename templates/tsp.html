@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+    <!DOCTYPE html>
+<html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
         <!-- Favicons -->
-        <link href="assets/img/favicon.png" rel="icon">
+        <link href="static/img/logo_THB1.png" rel="icon">
         <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 
         <!-- Google Fonts -->
@@ -17,10 +19,12 @@
 
         <!-- Vendor CSS Files -->
         <link href="static/bootstrap5/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
 
         <!-- Leaflet CSS for Map -->
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
         <link rel="stylesheet" href="static/css/tsp.css">
+        <script src="static/js/jquery.js"></script>
         <script src="static/js/main.js"></script>
         <script src="static/bootstrap5/js/bootstrap.bundle.min.js"></script>
         <!-- Title -->
@@ -32,7 +36,7 @@
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} close">{{ message }}</div>
+                    <div class="flash alert alert-{{ category }} close">{{ message }}</div>
                 {% endfor %}
             {% endif %}
             {% endwith %}
@@ -141,13 +145,6 @@
                     </div>
                 </div>
             </div>
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="map" id="map" width="100%" height="400px"></div>
-                    </div>
-                </div>
-            </div>
         <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
         <script src="https://unpkg.com/polyline@latest/dist/polyline.min.js"></script>
         <script src="static/js/Leaflet_encoded.js"></script>
@@ -222,16 +219,18 @@
     </script>
 
     <script>
-        let today = new Date()
+        let today = new Date();
 
-        let year = today.getFullYear()
-        let month = today.getMonth() + 1 // the months are indexed starting with 0
-        let date = today.getDate()
+        let year = today.getFullYear();
+        let month = (today.getMonth() + 1).toString().padStart(2, '0'); // Bulan dalam format 2 digit
+        let date = today.getDate().toString().padStart(2, '0'); // Tanggal dalam format 2 digit
 
-        let dateStr = `${year}-${month}-${date}`
+        let dateStr = `${year}-${month}-${date}`;
 
-        let input = document.querySelector('[name=tanggal_kirim]')
-        input.setAttribute('min', dateStr)
+        let input = document.querySelector('[name=tanggal_kirim]');
+        if (input) {
+            input.setAttribute('min', dateStr);
+        }
     </script>    
         </main>
     </body>
