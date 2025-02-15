@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Favicons -->
-    <link href="static/img/logo_THB1.png" rel="icon">
+    <link href="static/img/logo_THB1.png" rel="icon" type="image/x-icon">
     <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 
     <!-- Google Fonts -->
@@ -21,7 +21,6 @@
 
     <!-- Vendor JS Files -->
     <script src="static/bootstrap5/js/bootstrap.bundle.min.js"></script>
-    <script src="static/bootstrap5/js/boostrap.min.js"></script>
 
     <title>Driver - PT. Tunas Harapan Baru</title>
 </head>
@@ -105,6 +104,37 @@
                         <div class="mb-3">
                             <label for="telp" class="form-label">No Telp</label>
                             <input type="telp" name="telp" id="telp" class="form-control" pattern="+62-[0-9]{3}-[0-9]{3}-[0-9]{3}" required>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Save changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="editModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Data Driver</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="/edit_driver" method="POST">
+                        <div class="mb-3">
+                            <label for="edit_nama_driver" class="form-label">Nama Driver</label>
+                            <input type="text" name="edit_nama_driver" id="edit_nama_driver" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_platnomor" class="form-label">Plat Nomor</label>
+                            <input type="text" name="edit_platnomor" id="edit_platnomor" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_telp" class="form-label">No Telp</label>
+                            <input type="telp" name="edit_telp" id="edit_telp" class="form-control" pattern="+62-[0-9]{3}-[0-9]{3}-[0-9]{3}" required>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

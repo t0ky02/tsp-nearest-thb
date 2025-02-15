@@ -79,7 +79,7 @@
             return;
         }
 
-        const geocodeURL = `https://api.openrouteservice.org/geocode/search?api_key=${ORS_API_KEY}&text=${encodeURIComponent(query)}`;
+        const geocodeURL = `https://api.openrouteservice.org/geocode/search?api_key=${ORS_API_KEY}&text=${encodeURIComponent(query)}&boundary.rect.min_lon=105.0&boundary.rect.min_lat=-8.0&boundary.rect.max_lon=115.0&boundary.rect.max_lat=-5.5`;
 
         fetch(geocodeURL)
             .then(response => response.json())
