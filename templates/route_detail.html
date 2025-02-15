@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Favicons -->
-    <link href="static/img/logo_THB1.png" rel="icon">
+    <link href="{{ url_for('static', filename='img/logo_THB1.png') }}" rel="icon">
     <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 
     <!-- Google Fonts -->
@@ -21,6 +21,9 @@
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <script src="{{ url_for('static', filename='js/jquery.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='bootstrap5/js/bootstrap.bundle.min.js') }}"></script>
 
     <title>Detail Rute - PT. Tunas Harapan Baru</title>
 </head>

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, make_response
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, make_response, send_from_directory
 from flask_mysqldb import MySQL
 from MySQLdb.cursors import DictCursor
 import requests
@@ -13,7 +13,7 @@ from markupsafe import escape
 from livereload import Server
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 
 # Konfigurasi Flask dan MySQL
 app.config.from_pyfile('config.cfg')
@@ -81,7 +81,6 @@ def logout():
     session.clear()
     response = make_response(redirect(url_for('login')))
     response.delete_cookie('session')  # Hapus cookie session
-    print ()
     return response
 
 @app.context_processor
@@ -111,25 +110,29 @@ def customer():
     cursor.close()
 
     if request.method == 'POST':
-        namacustomer = request.form['namacustomer']
-        namaperusahaan = request.form['namaperusahaan']
-        tanggalinput = request.form['tanggalinput']
-        tanggalkirim = request.form['tanggalkirim']
-        telp = request.form['telp']
-        alamat = request.form['alamat']
-        latitude = request.form['latitude']
-        longitude = request.form['longitude']
+        try:
+            namacustomer = request.form['namacustomer']
+            namaperusahaan = request.form['namaperusahaan']
+            tanggalinput = request.form['tanggalinput']
+            tanggalkirim = request.form['tanggalkirim']
+            telp = request.form['telp']
+            alamat = request.form['alamat']
+            latitude = request.form['latitude']
+            longitude = request.form['longitude']
 
-        cursor = mysql.connection.cursor()
-        cursor.execute(
-            "INSERT INTO `customer`(`namacustomer`, `namaperusahaan`, `tanggalinput`, `tanggalkirim`, `telp`, `alamat`, `latitude`, `longitude`) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
-            (namacustomer, namaperusahaan, tanggalinput, tanggalkirim, telp, alamat, latitude, longitude)
-        )
-        mysql.connection.commit()
-        cursor.close()
-        flash('Customer added successfully!', 'success')
-        flash(f'Customer "{namacustomer}" berhasil ditambahkan!', 'success')
+            cursor = mysql.connection.cursor()
+            cursor.execute(
+                "INSERT INTO `customer`(`namacustomer`, `namaperusahaan`, `tanggalinput`, `tanggalkirim`, `telp`, `alamat`, `latitude`, `longitude`) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                (namacustomer, namaperusahaan, tanggalinput, tanggalkirim, telp, alamat, latitude, longitude)
+            )
+            mysql.connection.commit()
+            cursor.close()
+            flash('Customer added successfully!', 'success')
+            flash(f'Customer "{namacustomer}" berhasil ditambahkan!', 'success')
+        except Exception as e:
+            flash(f'Error adding customer: {e}', 'danger')
+            print(e)
         return redirect(url_for('customer'))
     return render_template('customer.html', navbar=navbar_admin, customer = display_customer)
 
@@ -141,7 +144,7 @@ def delete(id):
     cursor.execute("DELETE FROM customer WHERE id = %s", (id,))
     mysql.connection.commit()
     cursor.close()
-    flash("Customer deleted successfully", "success")
+    flash("Customer berhasil dihapus", "success")
     return redirect('/customer')
 
 @app.route('/getedit/<int:id>', methods=['GET'])
@@ -192,7 +195,7 @@ def edit_customer(id):
             """, (namacustomer, namaperusahaan, tanggalinput, tanggalkirim, telp, alamat, latitude, longitude, id))
             mysql.connection.commit()
             cursor.close()
-            flash(f"Customer '{namacustomer}' updated successfully!", "success")
+            flash(f"Customer '{namacustomer}' berhasil diperbarui", "success")
             return redirect(url_for('customer'))
         except Exception as e:
             flash(f'Error updating customer: {e}', 'danger')
@@ -205,7 +208,7 @@ def edit_customer(id):
 def driver():
     cursor = mysql.connection.cursor()
     cursor.execute(
-        "SELECT `id`, `nama`, `telp`, `platnomor` FROM driver"
+        "SELECT `driver_id`, `nama`, `telp`, `platnomor` FROM driver"
     )
     driver = cursor.fetchall()
     cursor.close()
@@ -258,11 +261,18 @@ def driver():
 @admin_required
 @login_required
 def delete_driver(id):
+
     cursor = mysql.connection.cursor()
-    cursor.execute("DELETE FROM driver WHERE id = %s", (id,))
+    cursor.execute("SELECT * FROM driver where driver_id = %s", (id,))
+    driver = cursor.fetchone()
+    cursor.close()
+    nama = driver[2]
+
+    cursor = mysql.connection.cursor()
+    cursor.execute("DELETE FROM user WHERE id = %s", (id,))
     mysql.connection.commit()
     cursor.close()
-    flash("Driver deleted successfully", "success")
+    flash(f"Driver '{nama}' berhasil dihapus", "success")
     return redirect('/driver')
 
 def build_actual_distance_matrix(coordinates):

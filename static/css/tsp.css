@@ -10,12 +10,3 @@
     height: 30px; /* Tinggi icon */
 }
 
-.clickable-row{
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    user-select: none;
-}
-
-.clickable-row:hover{
-    background-color: #b0bbdb;
-}

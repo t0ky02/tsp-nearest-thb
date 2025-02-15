@@ -364,6 +364,16 @@ h6 {
 /*--------------------------------------------------------------
 # Header
 --------------------------------------------------------------*/
+.clickable-row{
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  user-select: none;
+}
+
+.clickable-row:hover{
+  background-color: #b0bbdb;
+}
+
 .logo {
   line-height: 1;
 }
