@@ -309,11 +309,6 @@ document.addEventListener("DOMContentLoaded", function() {
               .catch(error => console.error("Error fetching customer data:", error));
       });
   });
-
-  
-
-
-  
   
   function updateMap(lat, lng) {
       // Periksa apakah Leaflet sudah terinisialisasi
