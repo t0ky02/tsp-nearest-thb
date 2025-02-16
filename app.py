@@ -339,6 +339,13 @@ def nearest_neighbor_algorithm(distance_matrix):  #algoritma
 
     return route
 
+@app.route('/reprocesstsp', methods=['GET', 'POST'])
+@admin_required
+@login_required
+def reprocesstsp():
+    cursor = mysql.connection.cursor()
+    return None
+
 ################## TSP ##################
 @app.route('/tsp', methods=['GET', 'POST'])
 @admin_required

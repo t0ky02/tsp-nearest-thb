@@ -179,9 +179,10 @@
                                 </div>
 
                                 <!-- Tempatkan Map -->
-                                <div id="map" style="height: 400px;"></div>
-                                <input type="hidden" name="latitude" id="edit_latitude" >
-                                <input type="hidden" name="longitude" id="edit_longitude" >
+                                <div id="edit_map" style="height: 400px;"></div>
+                                <input type="hidden" name="latitude" id="edit_latitude">
+                                <input type="hidden" name="longitude" id="edit_longitude">
+
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                     <button type="submit" class="btn btn-primary">Save changes</button>
@@ -279,15 +280,67 @@
 
         window.onload = setCurrentDatetime;
 
-        //ORS GEOCODING API
+    //ORS GEOCODING API
     var map;
+    var edit_map;
     var marker;
+    var edit_marker;
 
     // Batas Pulau Jawa
     var bounds = L.latLngBounds(
         L.latLng(-8.793611, 105.305374), // Ujung Barat Daya (Ujung Kulon)
         L.latLng(-5.832497, 114.623748)  // Ujung Timur Laut (Banyuwangi)
     );
+
+    document.getElementById('editModal').addEventListener('shown.bs.modal', function () {
+        if (!edit_map) {
+            edit_map = L.map('edit_map', {
+                center: [-7.5, 110.5],
+                zoom: 8,
+                maxBounds: bounds,
+                maxBoundsViscosity: 1.0
+            });
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(edit_map);
+
+            edit_map.fitBounds(bounds);
+        } else {
+            edit_map.invalidateSize();
+        }
+
+        // Event saat klik peta
+        edit_map.on('click', function (e) {
+            var lat = e.latlng.lat;
+            var lng = e.latlng.lng;
+
+            // Validasi apakah titik dalam batas Pulau Jawa
+            if (!isWithinJawa(lat, lng)) {
+                alert("Titik yang dipilih berada di luar Pulau Jawa. Silakan pilih titik dalam batas Pulau Jawa.");
+                return;
+            }
+        
+            document.getElementById('edit_latitude').value = lat;
+            document.getElementById('edit_longitude').value = lng;
+            console.log(lat, lng);
+            // Pindahkan marker ke lokasi yang diklik
+            if (edit_marker) {
+                edit_marker.setLatLng(e.latlng).update();
+            } else {
+                edit_marker = L.marker(e.latlng).addTo(edit_map);
+            }
+
+            // Panggil fungsi geocoding untuk mendapatkan alamat
+            reverseGeocode(lat, lng);
+        });
+
+        // Fungsi untuk memeriksa apakah titik berada dalam batas Pulau Jawa
+        function isWithinJawa(lat, lng) {
+            var latLng = L.latLng(lat, lng);
+            return bounds.contains(latLng);
+        }
+    });
 
     document.getElementById('addModal').addEventListener('shown.bs.modal', function () {
         if (!map) {
@@ -360,13 +413,16 @@
                     var fullAddress = addressParts.join(', ');
                     // Jika tidak ada alamat ditemukan, berikan fallback
                     document.getElementById('alamat').value = fullAddress || "Alamat tidak ditemukan";
+                    document.getElementById('edit_alamat').value = fullAddress || "Alamat tidak ditemukan";
                 } else {
                     document.getElementById('alamat').value = "Alamat tidak ditemukan";
+                    document.getElementById('edit_alamat').value = "Alamat tidak ditemukan";
                 }
             })
             .catch(error => {
                 console.error('Error fetching geocoding data:', error);
                 document.getElementById('alamat').value = "Gagal mengambil alamat";
+                document.getElementById('edit_alamat').value = "Gagal mengambil alamat";
             });
     }
     </script>

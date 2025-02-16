@@ -304,22 +304,12 @@ document.addEventListener("DOMContentLoaded", function() {
                   document.getElementById("edit_latitude").value = data.latitude;
                   document.getElementById("edit_longitude").value = data.longitude;
 
-                  updateMap(data.latitude, data.longitude);
+                  //updateMap(data.latitude, data.longitude);
               })
               .catch(error => console.error("Error fetching customer data:", error));
       });
   });
   
-  function updateMap(lat, lng) {
-      // Periksa apakah Leaflet sudah terinisialisasi
-      if (typeof L !== "undefined") {
-          map = L.map("map").setView([lat, lng], 15);
-          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-          L.marker([lat, lng]).addTo(map);
-      }else{
-        map.invalidateSize();
-      }
-  }
 });
 
 setTimeout(function() {
