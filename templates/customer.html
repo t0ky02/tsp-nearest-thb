@@ -177,11 +177,11 @@
                                     <label for="alamat" class="form-label">Alamat</label>
                                     <textarea class="form-control" name="alamat" id="edit_alamat" rows="3" required></textarea>
                                 </div>
-
-                                <!-- Tempatkan Map -->
-                                <div id="edit_map" style="height: 400px;"></div>
                                 <input type="hidden" name="latitude" id="edit_latitude">
                                 <input type="hidden" name="longitude" id="edit_longitude">
+                                <!-- Tempatkan Map -->
+                                <div id="edit_map" style="height: 400px;"></div>
+                                
 
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -297,55 +297,49 @@
     var editMarker; // Marker modal edit
 
     document.getElementById('editModal').addEventListener('shown.bs.modal', function () {
-        let latitude = parseFloat(document.getElementById("edit_latitude").value) || -6.200000;
-        let longitude = parseFloat(document.getElementById("edit_longitude").value) || 106.816666;
+        let latitude = document.getElementById("edit_latitude").value;
+        let longitude = document.getElementById("edit_longitude").value;
 
-        console.log("Lat:", latitude, "Lng:", longitude); // Debugging
+        // Inisialisasi map hanya jika belum dibuat
+        if (!editMap) {
+            editMap = L.map('edit_map').setView([latitude, longitude], 10);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(editMap);
 
-        // Hapus map sebelumnya jika sudah ada, agar tidak terjadi cache
-        if (editMap) {
-            editMap.remove(); 
-            editMap = null;
-        }
+            // Buat marker pertama kali
+            editMarker = L.marker([latitude, longitude], { draggable: true }).addTo(editMap);
 
-        // Inisialisasi ulang map saat modal dibuka
-        editMap = L.map('edit_map').setView([latitude, longitude], 15);
-        
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(editMap);
+            // Event saat klik peta
+            editMap.on('click', function (e) {
+                let lat = e.latlng.lat;
+                let lng = e.latlng.lng;
 
-        // Buat marker baru
-        editMarker = L.marker([latitude, longitude], { draggable: true }).addTo(editMap);
+                // Validasi apakah titik dalam batas Pulau Jawa
+                if (!isWithinJawa(lat, lng)) {
+                    alert("Titik yang dipilih berada di luar Pulau Jawa. Silakan pilih titik dalam batas Pulau Jawa.");
+                    return;
+                }
 
-        // Pastikan peta tidak abu-abu
-        setTimeout(() => { editMap.invalidateSize(); }, 300);
+                // Update input latitude & longitude
+                document.getElementById('edit_latitude').value = lat;
+                document.getElementById('edit_longitude').value = lng;
 
-        // Event klik untuk update marker
-        editMap.on('click', function (e) {
-            let lat = e.latlng.lat;
-            let lng = e.latlng.lng;
+                // Pindahkan marker ke lokasi baru
+                editMarker.setLatLng([lat, lng]).update();
 
-            if (!isWithinJawa(lat, lng)) {
-                alert("Titik yang dipilih berada di luar Pulau Jawa. Silakan pilih titik dalam batas Pulau Jawa.");
-                return;
-            }
-
-            document.getElementById('edit_latitude').value = lat;
-            document.getElementById('edit_longitude').value = lng;
-            editMarker.setLatLng([lat, lng]).update();
-            reverseGeocode(lat, lng);
-        });
-    });
-
-    // Reset map ketika modal ditutup agar tidak menyimpan state lama
-    document.getElementById('editModal').addEventListener('hidden.bs.modal', function () {
-        if (editMap) {
-            editMap.remove(); 
-            editMap = null;
+                // Panggil fungsi geocoding untuk mendapatkan alamat
+                reverseGeocode(lat, lng);
+            });
+        } else {
+            editMap.setView([latitude, longitude], 15);
+            editMarker.setLatLng([latitude, longitude]);
+            editMap.invalidateSize(); // Refresh ukuran map
         }
     });
 
+    // Fungsi untuk memeriksa apakah titik berada dalam batas Pulau Jawa
     function isWithinJawa(lat, lng) {
         var bounds = L.latLngBounds(
             L.latLng(-8.9, 105.5),  // Batas bawah kiri
@@ -354,7 +348,6 @@
         return bounds.contains(L.latLng(lat, lng));
     }
 });
-
 
 
     document.getElementById('addModal').addEventListener('shown.bs.modal', function () {
