@@ -193,6 +193,13 @@ def edit_customer(id):
                 SET namacustomer=%s, namaperusahaan=%s, tanggalinput=%s, tanggalkirim=%s, telp=%s, alamat=%s, latitude=%s, longitude=%s
                 WHERE id=%s
             """, (namacustomer, namaperusahaan, tanggalinput, tanggalkirim, telp, alamat, latitude, longitude, id))
+
+            cursor.execute("SELECT DISTINCT route_id FROM route_details WHERE customer_id = %s", (id,))
+            routes_to_update = cursor.fetchall()
+
+    # Jalankan perhitungan ulang untuk setiap rute yang terdampak
+            for route in routes_to_update:
+                recalculate_tsp(route[0])
             mysql.connection.commit()
             cursor.close()
             flash(f"Customer '{namacustomer}' berhasil diperbarui", "success")
@@ -383,12 +390,6 @@ def nearest_neighbor_algorithm(distance_matrix):  #algoritma
 
     return route
 
-@app.route('/reprocesstsp', methods=['GET', 'POST'])
-@admin_required
-@login_required
-def reprocesstsp():
-    cursor = mysql.connection.cursor()
-    return None
 
 ################## TSP ##################
 @app.route('/tsp', methods=['GET', 'POST'])
@@ -492,6 +493,7 @@ def recalculate_tsp(route_id):
     if not customers:
         return jsonify({"message": "Tidak ada customer dalam rute ini"}), 400
 
+    company_location =[-6.218400187288391, 106.4833542644175]
     # Siapkan daftar koordinat
     coordinates = [company_location] + [[float(c[1]), float(c[2])] for c in customers]
 

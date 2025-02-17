@@ -57,7 +57,10 @@ function displaySuggestions(suggestions, textarea, modal) {
                         marker = L.marker([lat, lon]).addTo(map);
                     }
                     map.setView([lat, lon], 14);
-                } else if (textarea.id === 'edit_alamat' && typeof edit_map !== 'undefined') {
+                } 
+            }
+            if (typeof edit_map !== 'undefined') {
+                if(textarea.id === 'edit_alamat'){
                     if (edit_marker) {
                         edit_marker.setLatLng([lat, lon]).update();
                     } else {

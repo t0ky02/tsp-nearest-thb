@@ -292,55 +292,70 @@
         L.latLng(-5.832497, 114.623748)  // Ujung Timur Laut (Banyuwangi)
     );
 
+    document.addEventListener("DOMContentLoaded", function () {
+    var editMap; // Peta modal edit
+    var editMarker; // Marker modal edit
+
     document.getElementById('editModal').addEventListener('shown.bs.modal', function () {
-        if (!edit_map) {
-            edit_map = L.map('edit_map', {
-                center: [-7.5, 110.5],
-                zoom: 8,
-                maxBounds: bounds,
-                maxBoundsViscosity: 1.0
-            });
+        let latitude = parseFloat(document.getElementById("edit_latitude").value) || -6.200000;
+        let longitude = parseFloat(document.getElementById("edit_longitude").value) || 106.816666;
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(edit_map);
+        console.log("Lat:", latitude, "Lng:", longitude); // Debugging
 
-            edit_map.fitBounds(bounds);
-        } else {
-            edit_map.invalidateSize();
+        // Hapus map sebelumnya jika sudah ada, agar tidak terjadi cache
+        if (editMap) {
+            editMap.remove(); 
+            editMap = null;
         }
 
-        // Event saat klik peta
-        edit_map.on('click', function (e) {
-            var lat = e.latlng.lat;
-            var lng = e.latlng.lng;
+        // Inisialisasi ulang map saat modal dibuka
+        editMap = L.map('edit_map').setView([latitude, longitude], 15);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(editMap);
 
-            // Validasi apakah titik dalam batas Pulau Jawa
+        // Buat marker baru
+        editMarker = L.marker([latitude, longitude], { draggable: true }).addTo(editMap);
+
+        // Pastikan peta tidak abu-abu
+        setTimeout(() => { editMap.invalidateSize(); }, 300);
+
+        // Event klik untuk update marker
+        editMap.on('click', function (e) {
+            let lat = e.latlng.lat;
+            let lng = e.latlng.lng;
+
             if (!isWithinJawa(lat, lng)) {
                 alert("Titik yang dipilih berada di luar Pulau Jawa. Silakan pilih titik dalam batas Pulau Jawa.");
                 return;
             }
-        
+
             document.getElementById('edit_latitude').value = lat;
             document.getElementById('edit_longitude').value = lng;
-            console.log(lat, lng);
-            // Pindahkan marker ke lokasi yang diklik
-            if (edit_marker) {
-                edit_marker.setLatLng(e.latlng).update();
-            } else {
-                edit_marker = L.marker(e.latlng).addTo(edit_map);
-            }
-
-            // Panggil fungsi geocoding untuk mendapatkan alamat
+            editMarker.setLatLng([lat, lng]).update();
             reverseGeocode(lat, lng);
         });
+    });
 
-        // Fungsi untuk memeriksa apakah titik berada dalam batas Pulau Jawa
-        function isWithinJawa(lat, lng) {
-            var latLng = L.latLng(lat, lng);
-            return bounds.contains(latLng);
+    // Reset map ketika modal ditutup agar tidak menyimpan state lama
+    document.getElementById('editModal').addEventListener('hidden.bs.modal', function () {
+        if (editMap) {
+            editMap.remove(); 
+            editMap = null;
         }
     });
+
+    function isWithinJawa(lat, lng) {
+        var bounds = L.latLngBounds(
+            L.latLng(-8.9, 105.5),  // Batas bawah kiri
+            L.latLng(-5.8, 114.5)   // Batas atas kanan
+        );
+        return bounds.contains(L.latLng(lat, lng));
+    }
+});
+
+
 
     document.getElementById('addModal').addEventListener('shown.bs.modal', function () {
         if (!map) {
