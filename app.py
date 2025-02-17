@@ -257,6 +257,50 @@ def driver():
             return redirect(url_for('driver'))
     return render_template('driver.html', navbar=navbar_admin, driver=driver)
 
+@app.route('/getedit_driver/<int:id>', methods=['GET'])
+@admin_required
+@login_required
+def getedit_driver(id):
+    cursor = mysql.connection.cursor()
+    cursor.execute("SELECT * FROM driver WHERE driver_id = %s", (id,))
+    edit_driver = cursor.fetchone()
+    cursor.close()
+    if edit_driver:
+        # Ubah data ke format JSON
+        return jsonify({
+            'id': edit_driver[0],
+            'nama_driver': edit_driver[2],
+            'platnomor': edit_driver[3],
+            'telp': edit_driver[4]
+        })
+    else:
+        return jsonify({'error': 'Data tidak ditemukan'}), 404
+
+@app.route('/edit_driver/<int:id>', methods=['POST'])
+@admin_required
+@login_required
+def edit_driver(id):
+    if request.method == 'POST':
+        try:
+            nama_driver = request.form['nama_driver']    
+            platnomor = request.form['platnomor']
+            telp = request.form['telp']
+            # Update data driver di database
+            cursor = mysql.connection.cursor()
+            cursor.execute("""
+                UPDATE driver
+                SET nama=%s, platnomor=%s, telp=%s
+                WHERE id=%s
+            """, (nama_driver, platnomor, telp, id))
+            mysql.connection.commit()
+            cursor.close()
+            flash(f"Driver '{nama_driver}' berhasil diperbarui", "success")
+            return redirect(url_for('driver'))
+        except Exception as e:
+            flash(f'Error updating driver: {e}', 'danger')
+            print(e)
+            return redirect(url_for('driver'))
+
 @app.route('/delete_driver/<int:id>', methods=['GET', 'POST'])
 @admin_required
 @login_required
@@ -470,14 +514,59 @@ def driver_routes():
     cursor.close()
     return render_template('daftar_rute.html', routes_list=routes, navbar=navbar_driver_name)
 
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+@driver_required
+def profile():
+    session_name = session.get('username', None)
+    navbar_driver_name = navbar_driver.replace("{{ session_name }}", session_name or "Guest")
+    
+    cursor = mysql.connection.cursor()
+    cursor.execute("""
+        SELECT username, password from user WHERE id = %s
+    """, [session['user_id']]
+    )
+    user = cursor.fetchone()
+    cursor.close()
 
-@app.route('/account_settings', methods=['GET', 'POST'])
+    return render_template('profile.html', navbar=navbar_driver_name, user = user)
+
+@app.route('/profile/account_settings', methods=['GET', 'POST'])
 @login_required
 @driver_required
 def account_settings():
     session_name = session.get('username', None)
     navbar_driver_name = navbar_driver.replace("{{ session_name }}", session_name or "Guest")
-    return render_template('account_settings.html', navbar=navbar_driver_name)
+
+    cursor = mysql.connection.cursor()
+    cursor.execute("SELECT username, password FROM user WHERE id = %s", [session['user_id']])
+    user = cursor.fetchone()
+    cursor.close()
+
+    if request.method == 'POST':
+        # Cek apakah input ada dalam request
+        if 'password' not in request.form or 'confirm_password' not in request.form:
+            flash("Terjadi kesalahan. Pastikan semua data diisi.", "danger")
+            return redirect(url_for('account_settings'))
+        
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+
+        if password != confirm_password:
+            flash("Password tidak sama dengan konfirmasi password.", "danger")
+            return redirect(url_for('account_settings'))
+
+        # Update password di database
+        cursor = mysql.connection.cursor()
+        cursor.execute("UPDATE user SET password=%s WHERE id=%s", (password, session['user_id']))
+        mysql.connection.commit()  # Jangan lupa commit perubahan!
+        cursor.close()
+
+        flash("Password berhasil diganti.", "success")
+        return redirect(url_for('profile'))
+
+    return render_template('account_settings.html', navbar=navbar_driver_name, user=user)
+
 
 ################## DETAIL ROUTE ##################
 @app.route('/route_detail/<int:route_id>', methods=['GET'])

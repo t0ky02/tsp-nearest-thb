@@ -21,8 +21,6 @@
 
     <!-- Vendor JS Files -->
     <script src="static/bootstrap5/js/bootstrap.bundle.min.js"></script>
-    <script src="static/bootstrap5/js/boostrap.min.js"></script>
-
     <title>Driver - PT. Tunas Harapan Baru</title>
 </head>
 <body> 
@@ -74,7 +72,7 @@
                                 <a href="/delete_driver/{{ row[0] }}" type="button" class="btn btn-danger" style="width: 40%;">Delete</a>
                             </div>
                             <div class="mb-3">
-                                <a data-id="{{ row[0] }}" class="btn btn-warning edit-btn" data-bs-toggle="modal" data-bs-target="#editModal">Edit</a>
+                                <a data-id="{{ row[0] }}" class="btn btn-warning edit-btn-driver" data-bs-toggle="modal" data-bs-target="#editModal">Edit</a>
                             </div>
                         </td>
                     </tr>
@@ -84,8 +82,8 @@
             </div>
         </div>
     </div>
-     <!-- Modal -->
-     <div class="modal" id="addModal" tabindex="-1">
+    <!-- Modal -->
+    <div class="modal" id="addModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -104,7 +102,37 @@
                         </div>
                         <div class="mb-3">
                             <label for="telp" class="form-label">No Telp</label>
-                            <input type="telp" name="telp" id="telp" class="form-control" pattern="+62-[0-9]{3}-[0-9]{3}-[0-9]{3}" required>
+                            <input type="telp" name="telp" id="telp" class="form-control" required>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Save changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal" id="editModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Data Driver</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="/edit_driver/" method="POST" id="editFormDriver">
+                        <div class="mb-3">
+                            <label for="nama_driver" class="form-label">Nama Driver</label>
+                            <input type="text" name="nama_driver" id="edit_nama_driver" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="platnomor" class="form-label">Plat Nomor</label>
+                            <input type="text" name="platnomor" id="edit_platnomor" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="telp" class="form-label">No Telp</label>
+                            <input type="telp" name="telp" id="edit_telp_driver" class="form-control" pattern="+62-[0-9]{3}-[0-9]{3}-[0-9]{3}" required>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -116,7 +144,7 @@
         </div>
     </div>
 </main><!-- End #main -->
-<script src="static/js/jquery.js"></script>
-<script src="static/js/main.js"></script>
 </body>
+    <script src="static/js/jquery.js"></script>
+    <script src="static/js/main.js"></script>
 </html>

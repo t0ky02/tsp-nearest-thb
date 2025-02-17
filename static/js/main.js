@@ -312,6 +312,37 @@ document.addEventListener("DOMContentLoaded", function() {
   
 });
 
+document.addEventListener("DOMContentLoaded", function() {
+  // Ambil semua tombol edit
+  const editButtons = document.querySelectorAll(".edit-btn-driver");
+
+  editButtons.forEach(button => {
+      button.addEventListener("click", function() {
+          const driverId = this.getAttribute("data-id");
+          console.log(driverId)
+          // Ambil data dari server
+          console.log("Fetching data..."); // Debugging
+
+          fetch(`/getedit_driver/${driverId}`)
+              .then(response => response.json())
+              .then(data => {
+                console.log("Fetched Data:", data);
+
+                // Pastikan elemen ada sebelum diisi
+                // Konversi format tanggal dari server ke format yang valid untuk input HTML
+                  document.getElementById("editFormDriver").setAttribute("action", `/edit_driver/${data.id}`);
+                  document.getElementById("edit_nama_driver").value = data.nama_driver;
+                  document.getElementById("edit_telp_driver").value = data.telp;
+                  document.getElementById("edit_platnomor").value = data.platnomor;
+
+                  //updateMap(data.latitude, data.longitude);
+              })
+              .catch(error => console.error("Error fetching customer data:", error));
+      });
+  });
+  
+});
+
 setTimeout(function() {
   var flashMessages = document.getElementsByClassName('flash');
   
