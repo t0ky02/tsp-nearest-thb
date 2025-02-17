@@ -473,6 +473,63 @@ def tsp():
         route_list = routes_list
     )
 
+############### PROSES ULANG TSP DAN UPDATE TABLE TERKAIT SAAT DATA CUSTOMER ADA YANG DI EDIT ##################
+@app.route('/recalculate_tsp/<int:route_id>', methods=['POST'])
+@admin_required
+@login_required
+def recalculate_tsp(route_id):
+    cursor = mysql.connection.cursor()
+
+    # Ambil data customer dalam rute ini
+    cursor.execute("""
+        SELECT customer.id, customer.latitude, customer.longitude
+        FROM route_details
+        JOIN customer ON route_details.customer_id = customer.id
+        WHERE route_details.route_id = %s
+    """, (route_id,))
+    customers = cursor.fetchall()
+    
+    if not customers:
+        return jsonify({"message": "Tidak ada customer dalam rute ini"}), 400
+
+    # Siapkan daftar koordinat
+    coordinates = [company_location] + [[float(c[1]), float(c[2])] for c in customers]
+
+    # Buat ulang matriks jarak
+    distance_matrix = build_actual_distance_matrix(coordinates)
+    route = nearest_neighbor_algorithm(distance_matrix)
+
+    # Urutkan koordinat berdasarkan rute
+    ordered_coordinates = [coordinates[i] for i in route]
+    ordered_coordinates.append(ordered_coordinates[0])
+
+    # Hitung total jarak
+    total_distance = round(sum(distance_matrix[route[i]][route[i+1]] for i in range(len(route) - 1)), 2)
+
+    # Update tabel routes
+    cursor.execute("""
+        UPDATE routes 
+        SET total_distance = %s, route = %s
+        WHERE id = %s
+    """, (total_distance, json.dumps(ordered_coordinates), route_id))
+
+    # Update urutan di `route_details`
+    for order_number, customer_index in enumerate(route):
+        if customer_index == 0:
+            continue
+        customer_id = customers[customer_index - 1][0]
+        cursor.execute("""
+            UPDATE route_details 
+            SET order_index = %s
+            WHERE route_id = %s AND customer_id = %s
+        """, (order_number, route_id, customer_id))
+
+    mysql.connection.commit()
+    cursor.close()
+
+    return jsonify({"message": "Rute berhasil diperbarui!"}), 200
+
+
 ############### DELETE ROUTE ###################
 @app.route('/delete_route/<int:id>', methods=['GET', 'POST'])
 @login_required
