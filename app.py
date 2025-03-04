@@ -19,7 +19,7 @@ app = Flask(__name__, static_folder='static')
 app.config.from_pyfile('config.cfg')
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = ''
+app.config['MYSQL_PASSWORD'] = 'k@li-linux30'
 app.config['MYSQL_DB'] = 'db_thb'
 app.config['SECRET_KEY'] = '@#$123456&*()'
 app.config['MYSQL_PORT'] = 3306
@@ -335,6 +335,7 @@ def build_actual_distance_matrix(coordinates):
 
     # Format koordinat [longitude, latitude]
     coordinates = [[c[1], c[0]] for c in coordinates]
+    
     payload = {
         "locations": coordinates,
         "metrics": ["distance"]
@@ -351,7 +352,9 @@ def build_actual_distance_matrix(coordinates):
         if response.status_code == 200:
             data = response.json()
             # Matriks jarak dalam meter (konversikan ke kilometer)
-            distance_matrix = np.array(data['distances']) / 1000.0
+            distance_matrix = np.array(data['distances']) / 1000
+            print(f"Koordinat {coordinates}")
+            print(distance_matrix)
             return distance_matrix
         else:
             print(f"Error: API response code {response.status_code}")
@@ -361,34 +364,34 @@ def build_actual_distance_matrix(coordinates):
         print(f"API Request Error: {e}")
         return None
 
-def nearest_neighbor_algorithm(distance_matrix):  #algoritma
+def nearest_neighbor_algorithm(distance_matrix, start_index=0):
     """
-    Algoritma Nearest Neighbor untuk menyelesaikan TSP menggunakan matriks jarak asli.
+    Algoritma Nearest Neighbor untuk menyelesaikan TSP dengan titik awal tetap.
     """
     n = len(distance_matrix)
-    visited = [False] * n  # Status apakah titik sudah dikunjungi
-    route = []  # Menyimpan urutan rute
-    current_location = 0  # Mulai dari lokasi pertama (misalnya depot)
-
-    visited[current_location] = True
-    route.append(current_location) #memasukan data kedalam array
+    visited = [False] * n
+    route = [start_index]  # Mulai dari titik awal
+    visited[start_index] = True
+    current_location = start_index
 
     for _ in range(n - 1):
         nearest_distance = float('inf')
         next_location = -1
 
-        # Cari lokasi yang belum dikunjungi dengan jarak terdekat
         for i in range(n):
             if not visited[i] and distance_matrix[current_location][i] < nearest_distance:
                 nearest_distance = distance_matrix[current_location][i]
                 next_location = i
 
-        # Pindah ke lokasi terdekat
+        if next_location == -1:
+            break  # Menghindari error jika tidak ada kandidat
+
         visited[next_location] = True
         route.append(next_location)
         current_location = next_location
 
-    return route
+    return route  # Tidak perlu menambahkan kembali start_index, bisa ditangani di luar
+
 
 
 ################## TSP ##################
@@ -425,14 +428,13 @@ def tsp():
         # Ambil data customer yang dipilih
         selected_customers = [c for c in customers if str(c[0]) in selected_customers]
         coordinates = [company_location] + [[float(c[7]), float(c[8])] for c in selected_customers]
-        
         # Membuat matriks jarak
         distance_matrix = build_actual_distance_matrix(coordinates)
-        route = nearest_neighbor_algorithm(distance_matrix)
-
+        route = nearest_neighbor_algorithm(distance_matrix, start_index=0)
+        route.append(0)
         # Urutkan koordinat berdasarkan rute
         ordered_coordinates = [coordinates[i] for i in route]
-        ordered_coordinates.append(ordered_coordinates[0])
+        
 
         # Menyimpan data rute dalam database
         route_details = {
@@ -450,15 +452,19 @@ def tsp():
 
         route_id = cursor.lastrowid
 
-    # Menyimpan data detail rute ke tabel `route_details`
         for order_number, customer in enumerate(route_details['route_order']):
-            if customer == 0:  # Lewati titik awal (perusahaan)
-                continue
-            customer_id = selected_customers[customer - 1][0]
-            cursor.execute("""
-                INSERT INTO route_details (route_id, customer_id, order_index)
-                VALUES (%s, %s, %s)
-            """, (route_id, customer_id, order_number))
+            if customer == 0 or customer == len(route_details['route_order']) - 1:  
+                continue  # Lewati perusahaan (awal dan akhir)
+
+            customer_index = customer - 1  # Kurangi 1 karena perusahaan ada di index 0
+            if customer_index < len(selected_customers):  # Pastikan index valid
+                customer_id = selected_customers[customer_index][0]
+
+                cursor.execute("""
+                    INSERT INTO route_details (route_id, customer_id, order_index)
+                    VALUES (%s, %s, %s)
+                """, (route_id, customer_id, order_number))
+
 
         mysql.connection.commit()
         cursor.close()
@@ -499,14 +505,13 @@ def recalculate_tsp(route_id):
 
     # Buat ulang matriks jarak
     distance_matrix = build_actual_distance_matrix(coordinates)
-    route = nearest_neighbor_algorithm(distance_matrix)
-
+    route = nearest_neighbor_algorithm(distance_matrix, start_index=0)
+    route.append(0)
     # Urutkan koordinat berdasarkan rute
     ordered_coordinates = [coordinates[i] for i in route]
-    ordered_coordinates.append(ordered_coordinates[0])
 
     # Hitung total jarak
-    total_distance = round(sum(distance_matrix[route[i]][route[i+1]] for i in range(len(route) - 1)), 2)
+    total_distance = round(sum(distance_matrix[route[i]][route[i+1]] for i in range(len(route))), 2)
 
     # Update tabel routes
     cursor.execute("""
@@ -515,16 +520,18 @@ def recalculate_tsp(route_id):
         WHERE id = %s
     """, (total_distance, json.dumps(ordered_coordinates), route_id))
 
-    # Update urutan di `route_details`
-    for order_number, customer_index in enumerate(route):
-        if customer_index == 0:
-            continue
-        customer_id = customers[customer_index - 1][0]
-        cursor.execute("""
-            UPDATE route_details 
-            SET order_index = %s
-            WHERE route_id = %s AND customer_id = %s
-        """, (order_number, route_id, customer_id))
+    for order_number, customer in enumerate(route):
+            if customer == 0 or customer == len(route) - 1:  
+                continue  # Lewati perusahaan (awal dan akhir)
+
+            customer_index = customer - 1  # Kurangi 1 karena perusahaan ada di index 0
+            if customer_index < len(customer):  # Pastikan index valid
+                customer_id = customer[customer_index][0]
+
+                cursor.execute("""
+                    INSERT INTO route_details (route_id, customer_id, order_index)
+                    VALUES (%s, %s, %s)
+                """, (route_id, customer_id, order_number))
 
     mysql.connection.commit()
     cursor.close()
@@ -675,7 +682,12 @@ def route_detail(route_id):
             route_data = response['features'][0]  # Ambil fitur pertama
             geometry = route_data.get('geometry', {}).get('coordinates', [])
             properties = route_data.get('properties', {})
-
+            segments = properties.get('segments', [])  # Ambil data segmen
+            
+            # Hitung jarak antar titik
+            distances = []
+            for segment in segments:
+                distances.append(segment.get('distance', 0) / 1000.0)  # Konversi ke km
             print("Rute berhasil diambil!")
             # print("Koordinat geometry:", geometry)
             print("Ringkasan:", properties.get('summary', {}))
@@ -696,6 +708,7 @@ def route_detail(route_id):
         navbar=navbar,
         route_detail=route_detail,
         route_geometry= route_geometry,
+        distances = distances,
         breadcrumb=breadcrumb
     )
 

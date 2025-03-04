@@ -96,6 +96,7 @@
                     
                     <!-- Script untuk Menampilkan Peta -->
                     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+                    <script src="https://unpkg.com/leaflet-geometryutil"></script>
                 
                     <script>
                         
@@ -108,40 +109,133 @@
 
                         const routes = {{ route_id.route | tojson }};
                         const route_detail = {{ route_detail | tojson }};
-                        const route_geometry = {{ route_geometry | safe }};  // Data rute dari OpenRouteService (sudah dalam format JSON)
+                        const route_geometry = {{ route_geometry | safe }}; // Data rute dari OpenRouteService (sudah dalam format JSON)
+                        
+                        // Daftar 20 warna tetap
+                        const fixedColors = [
+                            'red', 'blue', 'green', 'orange', 'purple',
+                            'brown', 'pink', 'cyan', 'magenta', 'yellow',
+                            'lime', 'teal', 'indigo', 'violet', 'gold',
+                            'coral', 'skyblue', 'salmon', 'khaki', 'darkgreen'
+                        ];
 
-                        if (routes.length > 0) {
-                            // Tambahkan marker untuk setiap titik dalam rute
-                            routes.forEach((coord, index) => {
-                                let marker = L.marker([coord[0], coord[1]]).addTo(map);
-                                if (index === 0) {
-                                    marker.bindPopup('Titik Awal: Perusahaan Anda').openPopup();
+                        let colorIndex = 0; // Indeks untuk melacak warna yang digunakan
+
+                        function getFixedColor() {
+                            if (colorIndex >= fixedColors.length) {
+                                colorIndex = 0; // Kembali ke awal jika semua warna telah digunakan
+                            }
+                            return fixedColors[colorIndex++];
+                        }
+
+                        if (routes.length > 1) {
+                            for (let i = 0; i < routes.length - 1; i++) {
+                                let start = routes[i];
+                                let end = routes[i + 1];
+                                let segment = findSegment(start, end, route_geometry); // Fungsi untuk menemukan segmen rute
+
+                                if (segment && segment.length > 1) {
+                                    let color = getFixedColor();
+                                    let polyline = L.polyline(segment.map(coord => [coord[1], coord[0]]), {
+                                        color: color,
+                                        dashArray: '5, 10', // Pola garis putus-putus untuk visibilitas lebih baik
+                                        weight: 5
+                                    }).addTo(map);
+                                    // Menghitung jarak segmen
+                                    let distance = parseFloat('{{distances[i]}}');
+                                    let midpoint = L.GeometryUtil.interpolateOnLine(map, polyline.getLatLngs(), 0.5);
+                                    L.marker(midpoint.latLng, {
+                                        icon: L.divIcon({
+                                            className: 'distance-label',
+                                            html: `${distance.toFixed(0)/1000} Km`
+                                        })
+                                    }).addTo(map);
+                                
                                 } else {
-                                    const customer = route_detail[index - 1];
-                                    if (customer) {
-                                        marker.bindPopup(
-                                            `<b>Point ${index}</b><br>
-                                            ${customer.namacustomer}<br>
-                                            ${customer.namaperusahaan}<br>
-                                            ${customer.alamat}`
-                                        ).openPopup();
+                                    console.error(`Gagal menemukan segmen antara ${start} dan ${end}`);
+                                }
+                            }
+                            console.log(route_geometry);
+                        } else {
+                            console.error("Gagal memuat rute");
+                        }
+
+                        // Tambahkan marker untuk setiap titik dalam rute
+                        routes.forEach((coord, index) => {
+                            let marker = L.marker([coord[0], coord[1]]).addTo(map);
+                            if (index === 0) {
+                                marker.bindPopup('Titik Awal: Perusahaan Anda').openPopup();
+                            }
+                            if (index >= 1) {
+                                const customer = route_detail[index - 1];
+                                if (customer) {
+                                    marker.bindPopup(
+                                        `<b>Point ${index}</b><br>
+                                        ${customer.namacustomer}<br>
+                                        ${customer.namaperusahaan}<br>
+                                        ${customer.alamat}`
+                                    ).openPopup();
+                                }
+                            }
+                        });
+
+                        map.fitBounds(L.polyline(route_geometry.map(coord => [coord[1], coord[0]])).getBounds());
+
+                        function findSegment(start, end, routeGeometry, tolerance = 0.001) {
+                            let startIndex = -1;
+                            let endIndex = -1;
+                            let segment = [];
+
+                            function distance(coord1, coord2) {
+                                return Math.sqrt(Math.pow(coord1[0] - coord2[0], 2) + Math.pow(coord1[1] - coord2[1], 2));
+                            }
+
+                            // Cari indeks awal
+                            let minStartDistance = Infinity;
+                            for (let i = 0; i < routeGeometry.length; i++) {
+                                let dist = distance([routeGeometry[i][1], routeGeometry[i][0]], start);
+                                if (dist < minStartDistance) {
+                                    minStartDistance = dist;
+                                    if (dist < tolerance) {
+                                        startIndex = i;
                                     }
                                 }
-                            });
-
-                            // Tambahkan polyline ke peta berdasarkan route_geometry
-                            if (route_geometry.length > 0) {
-                                let polyline = L.polyline(route_geometry.map(coord => [coord[1], coord[0]]), {
-                                    color: 'blue',
-                                    weight: 3
-                                }).addTo(map);
-                                map.fitBounds(polyline.getBounds());
-                            } else {
-                                console.error("Gagal memuat rute");
                             }
-                        } 
+
+                            // Cari indeks akhir
+                            let minEndDistance = Infinity;
+                            for (let i = routeGeometry.length - 1; i >= 0; i--) {
+                                let dist = distance([routeGeometry[i][1], routeGeometry[i][0]], end);
+                                if (dist < minEndDistance) {
+                                    minEndDistance = dist;
+                                    if (dist < tolerance) {
+                                        endIndex = i;
+                                    }
+                                }
+                            }
+
+                            // Jika indeks ditemukan, buat segmen
+                            if (startIndex !== -1 && endIndex !== -1) {
+                                if (startIndex < endIndex) {
+                                    segment = routeGeometry.slice(startIndex, endIndex + 1);
+                                } else {
+                                    segment = routeGeometry.slice(endIndex, startIndex + 1).reverse();
+                                }
+                            }
+
+                            return segment;
+                        }
                     </script>
-                    
+                    <style>
+                        .distance-label {
+                            background: rgba(255, 255, 255, 0.8); 
+                            padding: 6px 10px;
+                            border-radius: 6px;
+                            font-size: 12px;
+                            font-weight: bold;
+                            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+                        }
+                    </style>
                 </div>
             </div>
         </div>
