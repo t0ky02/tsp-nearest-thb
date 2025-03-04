@@ -401,7 +401,7 @@ def nearest_neighbor_algorithm(distance_matrix, start_index=0):
 def tsp():
     # Mengambil data customer
     cursor = mysql.connection.cursor()
-    cursor.execute("SELECT id, namacustomer, namaperusahaan, tanggalinput, tanggalkirim, telp, alamat, latitude, longitude FROM customer")
+    cursor.execute("SELECT id, namacustomer, namaperusahaan, tanggalinput, tanggalkirim, telp, alamat, latitude, longitude FROM customer where status='available'")
     customers = cursor.fetchall()
     # Mengambil data driver
     cursor.execute("SELECT id, nama FROM driver")
@@ -422,11 +422,31 @@ def tsp():
         selected_driver = request.form.get('selected_driver')
         selected_customers = request.form.getlist('selected_customers')  # List of customer IDs
         tanggal_kirim = request.form['tanggal_kirim']
+
         if not selected_driver or not selected_customers:
             return "Driver atau customer belum dipilih!", 400
+        
 
         # Ambil data customer yang dipilih
         selected_customers = [c for c in customers if str(c[0]) in selected_customers]
+        cursor = mysql.connection.cursor()
+
+        # Ensure selected_customers is a list of IDs
+        if selected_customers:
+            customer_ids = [customer[0] for customer in selected_customers] #extract only the id's
+            format_strings = ','.join(['%s'] * len(customer_ids))  # Creates (%s, %s, %s, ...)
+            query = f"""
+                UPDATE customer 
+                SET status='no_available'
+                WHERE status='available'
+                AND id IN ({format_strings})
+            """
+            cursor.execute(query, tuple(customer_ids))  # Pass values as tuple
+            mysql.connection.commit()
+            cursor.close()
+        else:
+            print("No valid customers selected")
+
         coordinates = [company_location] + [[float(c[7]), float(c[8])] for c in selected_customers]
         # Membuat matriks jarak
         distance_matrix = build_actual_distance_matrix(coordinates)
@@ -442,7 +462,7 @@ def tsp():
             'total_distance': round(sum(distance_matrix[route[i]][route[i+1]] for i in range(len(route) - 1)), 2),
             'route_order': route
         }
-
+        
         cursor = mysql.connection.cursor()
         cursor.execute("""
             INSERT INTO routes (driver_id, total_distance, tanggal_kirim, route)
@@ -464,7 +484,7 @@ def tsp():
                     INSERT INTO route_details (route_id, customer_id, order_index)
                     VALUES (%s, %s, %s)
                 """, (route_id, customer_id, order_number))
-
+        
 
         mysql.connection.commit()
         cursor.close()
@@ -543,6 +563,32 @@ def recalculate_tsp(route_id):
 @app.route('/delete_route/<int:id>', methods=['GET', 'POST'])
 @login_required
 def delete_route(id):
+    cursor = mysql.connection.cursor()
+
+    # 1. Retrieve customer IDs from route_details
+    cursor.execute("""
+        SELECT customer_id FROM route_details WHERE route_id = %s
+    """, (id,))
+    customer_ids = [row[0] for row in cursor.fetchall()]
+
+    # 2. Update customer statuses
+    if customer_ids:  # Check if any customer IDs were found
+        format_strings = ','.join(['%s'] * len(customer_ids))
+        query = f"""
+            UPDATE customer 
+            SET status='available'
+            WHERE status='no_available'
+            AND id IN ({format_strings})
+        """
+        try:
+            cursor.execute(query, tuple(customer_ids))
+            mysql.connection.commit()
+        except Exception as e:
+            print(f"Error updating customer statuses: {e}")
+            mysql.connection.rollback()
+    else:
+        print("No customer IDs found for this route.")
+
     cursor = mysql.connection.cursor()  
     cursor.execute("DELETE FROM routes WHERE id = %s", (id,))
     mysql.connection.commit()
