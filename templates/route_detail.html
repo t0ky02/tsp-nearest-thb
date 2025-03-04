@@ -97,6 +97,7 @@
                     <!-- Script untuk Menampilkan Peta -->
                     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
                     <script src="https://unpkg.com/leaflet-geometryutil"></script>
+                    <script src="node_module/polylines/polylineoffset.js"></script>
                 
                     <script>
                         
@@ -109,14 +110,17 @@
 
                         const routes = {{ route_id.route | tojson }};
                         const route_detail = {{ route_detail | tojson }};
+                        const distance_seg = {{ distances | tojson}} 
                         const route_geometry = {{ route_geometry | safe }}; // Data rute dari OpenRouteService (sudah dalam format JSON)
                         
                         // Daftar 20 warna tetap
                         const fixedColors = [
-                            'red', 'blue', 'green', 'orange', 'purple',
-                            'brown', 'pink', 'cyan', 'magenta', 'yellow',
-                            'lime', 'teal', 'indigo', 'violet', 'gold',
-                            'coral', 'skyblue', 'salmon', 'khaki', 'darkgreen'
+                            'red', 'blue', 'green', 'purple', 'brown', 'cyan', 'magenta', 'yellow',
+                            'lime', 'teal', 'indigo', 'violet', 'gold', 'coral', 'skyblue', 'salmon',
+                            'khaki', 'darkgreen', '#FF0000', '#0000FF', '#00FF00', '#FFFF00', '#FF00FF',
+                            '#00FFFF', '#FFA500', '#800080', '#FFD700', '#A52A2A', '#FFC0CB', '#40E0D0',
+                            '#9370DB', '#008080', '#4B0082', '#EE82EE', '#F08080', '#F5F5DC', '#BDB76B',
+                            '#D2691E', '#8B4513', '#2F4F4F', '#696969', '#778899'
                         ];
 
                         let colorIndex = 0; // Indeks untuk melacak warna yang digunakan
@@ -138,16 +142,19 @@
                                     let color = getFixedColor();
                                     let polyline = L.polyline(segment.map(coord => [coord[1], coord[0]]), {
                                         color: color,
-                                        dashArray: '5, 10', // Pola garis putus-putus untuk visibilitas lebih baik
+                                        fillOpacity: 1,
+                                        dashArray: '10, 20',
                                         weight: 5
                                     }).addTo(map);
                                     // Menghitung jarak segmen
-                                    let distance = parseFloat('{{distances[i]}}');
+                                    let distance = distance_seg[i];
                                     let midpoint = L.GeometryUtil.interpolateOnLine(map, polyline.getLatLngs(), 0.5);
                                     L.marker(midpoint.latLng, {
                                         icon: L.divIcon({
                                             className: 'distance-label',
-                                            html: `${distance.toFixed(0)/1000} Km`
+                                            html: `<span style="color: white; font-weight: bold; background:${color};">${distance.toFixed(1)} Km</span><br>
+                                            <span style="font-size: 12px; font-weight: bold; color: white; background:${color};">Point ${i} → Point ${i + 1}</span>`,
+                                            iconSize: [120, 50]  // Ensure fixed size for label
                                         })
                                     }).addTo(map);
                                 
@@ -163,9 +170,9 @@
                         // Tambahkan marker untuk setiap titik dalam rute
                         routes.forEach((coord, index) => {
                             let marker = L.marker([coord[0], coord[1]]).addTo(map);
-                            if (index === 0) {
+                            
                                 marker.bindPopup('Titik Awal: Perusahaan Anda').openPopup();
-                            }
+                            
                             if (index >= 1) {
                                 const customer = route_detail[index - 1];
                                 if (customer) {
@@ -228,13 +235,23 @@
                     </script>
                     <style>
                         .distance-label {
-                            background: rgba(255, 255, 255, 0.8); 
-                            padding: 6px 10px;
-                            border-radius: 6px;
                             font-size: 12px;
                             font-weight: bold;
-                            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+                            text-align: center;
+                            white-space: nowrap; /* Prevents text from breaking into multiple lines */
                         }
+                        .distance-label span{
+                            text-shadow:
+                                -1px -1px 0 #000,
+                                0   -1px 0 #000,
+                                1px -1px 0 #000,
+                                1px  0   0 #000,
+                                1px  1px 0 #000,
+                                0    1px 0 #000,
+                                -1px  1px 0 #000,
+                                -1px  0   0 #000;
+                        }
+
                     </style>
                 </div>
             </div>

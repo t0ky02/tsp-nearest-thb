@@ -688,6 +688,7 @@ def route_detail(route_id):
             distances = []
             for segment in segments:
                 distances.append(segment.get('distance', 0) / 1000.0)  # Konversi ke km
+            print (f"Distance Segment: ", distances)
             print("Rute berhasil diambil!")
             # print("Koordinat geometry:", geometry)
             print("Ringkasan:", properties.get('summary', {}))
