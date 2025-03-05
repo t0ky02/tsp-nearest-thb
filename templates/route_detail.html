@@ -82,15 +82,30 @@
                             <th>No Telp</th>
                             <th>Alamat</th>
                         </tr>
+                        <tr>
+                            <td>0</td>  {# Start index from 1 #}
+                            <td> - </td>
+                            <td>PT Tunas Harapan Baru</td>
+                            <td>0821237741853</td>
+                            <td>Balaraja</td>
+                        </tr>
                         {% for detail in route_detail %}
                         <tr>
-                            <td>{{detail.order_index}}</td>
-                            <td>{{detail.namacustomer}}</td>
-                            <td>{{detail.namaperusahaan}}</td>
-                            <td>{{detail.telp}}</td>
-                            <td>{{detail.alamat}}</td>
+                            <td>{{ loop.index }}</td> {# Add +1 to continue index from previous row #}
+                            <td>{{ detail.namacustomer }}</td>
+                            <td>{{ detail.namaperusahaan }}</td>
+                            <td>{{ detail.telp }}</td>
+                            <td>{{ detail.alamat }}</td>
                         </tr>
                         {% endfor %}
+                        <tr>
+                            <td>{{ route_detail|length + 1 }}</td> {# Ensure last index follows sequence #}
+                            <td> - </td>
+                            <td>PT Tunas Harapan Baru</td>
+                            <td>0821237741853</td>
+                            <td>Balaraja</td>
+                        </tr>
+                        
                     </table>
                     <div id="map" style="height: 500px; width: 100%;"></div>
                     
@@ -132,11 +147,25 @@
                             return fixedColors[colorIndex++];
                         }
 
+                        function createArrowSpan(angle, color) {
+                            return `<span style="display: inline-block; transform: rotate(${angle}deg); color: ${color}; font-size: 16px;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="50" height="30" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" stroke="black" stroke-width="1"/>
+                                        </svg>
+                                    </span>`;
+                        }
+                        function calculateAngle(latlng1, latlng2) {
+                            const y = latlng2.lat - latlng1.lat;
+                            const x = latlng2.lng - latlng1.lng;
+                            let angle = Math.atan2(y, x) * 180 / Math.PI;
+                            return angle;
+                        }
+
                         if (routes.length > 1) {
                             for (let i = 0; i < routes.length - 1; i++) {
                                 let start = routes[i];
                                 let end = routes[i + 1];
-                                let segment = findSegment(start, end, route_geometry); // Fungsi untuk menemukan segmen rute
+                                let segment = findSegment(start, end, route_geometry);
 
                                 if (segment && segment.length > 1) {
                                     let color = getFixedColor();
@@ -146,18 +175,36 @@
                                         dashArray: '10, 20',
                                         weight: 5
                                     }).addTo(map);
-                                    // Menghitung jarak segmen
+
                                     let distance = distance_seg[i];
                                     let midpoint = L.GeometryUtil.interpolateOnLine(map, polyline.getLatLngs(), 0.5);
+
+                                    // Hitung sudut
+                                    let latlng1 = L.latLng(start[0], start[1]);
+                                    let latlng2 = L.latLng(end[0], end[1]);
+                                    let angle = calculateAngle(latlng1, latlng2);
+
+                                    // Buat span dengan panah
+                                    let arrowSpan = createArrowSpan(angle, color);
+
                                     L.marker(midpoint.latLng, {
                                         icon: L.divIcon({
                                             className: 'distance-label',
-                                            html: `<span style="color: white; font-weight: bold; background:${color};">${distance.toFixed(1)} Km</span><br>
-                                            <span style="font-size: 12px; font-weight: bold; color: white; background:${color};">Point ${i} → Point ${i + 1}</span>`,
-                                            iconSize: [120, 50]  // Ensure fixed size for label
+                                            html: `
+                                                <span style="color: white; font-weight: bold; background:${color};">
+                                                    ${distance.toFixed(1)} Km 
+                                                </span><br>
+                                                <span style="font-size: 12px; font-weight: bold; color: white; background:${color};">
+                                                    Point ${i} - Point ${i + 1}
+                                                </span><br>
+                                                <span style="color: white; font-weight: bold;">
+                                                    ${arrowSpan} 
+                                                </span>
+                                            `,
+                                            iconSize: [150, 50] // Perbesar ukuran label agar panah terlihat
                                         })
                                     }).addTo(map);
-                                
+
                                 } else {
                                     console.error(`Gagal menemukan segmen antara ${start} dan ${end}`);
                                 }
