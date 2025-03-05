@@ -399,8 +399,14 @@ def nearest_neighbor_algorithm(distance_matrix, start_index=0):
 @admin_required
 @login_required
 def tsp():
+
+
     # Mengambil data customer
     cursor = mysql.connection.cursor()
+    # Mengambil hanya tanggal_kirim yang unik dari data customer
+    cursor.execute("SELECT DISTINCT tanggalkirim, status FROM customer WHERE status='available' ORDER BY tanggalkirim ASC")
+    unique_dates = cursor.fetchall()
+
     cursor.execute("SELECT id, namacustomer, namaperusahaan, tanggalinput, tanggalkirim, telp, alamat, latitude, longitude FROM customer where status='available'")
     customers = cursor.fetchall()
     # Mengambil data driver
@@ -497,7 +503,8 @@ def tsp():
         navbar=navbar_admin,
         customers=customers, 
         drivers=drivers,
-        route_list = routes_list
+        route_list = routes_list,
+        unique_dates = unique_dates
     )
 
 ############### PROSES ULANG TSP DAN UPDATE TABLE TERKAIT SAAT DATA CUSTOMER ADA YANG DI EDIT ##################

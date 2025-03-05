@@ -60,6 +60,13 @@
                                     <option value="{{ driver[0] }}">{{ driver[1] }}</option>
                                     {% endfor %}
                                 </select>
+                            <label for="tanggal_kirim">Pilih Tanggal Kirim:</label>
+                                <select name="tanggal_kirim" id="tanggal_kirim" class="form-select" required>
+                                    <option value="">Semua</option>
+                                    {% for date in unique_dates %}
+                                    <option value="{{ date[0] }}">{{ date[0] }}</option>
+                                    {% endfor %}
+                                </select>
                             <table class="table table-striped table-bordered mt-3" id="customerTable">
                                 <thead>
                                     <tr>
@@ -76,7 +83,7 @@
                                     {% for customer in customers %}
                                     <tr class="align-middle">
                                         <td>
-                                            <input type="checkbox" name="selected_customers" value="{{ customer[0] }}">
+                                            <input type="checkbox" id="selected_customers" name="selected_customers" value="{{ customer[0] }}">
                                         </td>
                                         <td>{{ customer[4] }}</td>
                                         <td>{{ customer[3] }}</td>
@@ -88,26 +95,7 @@
                                     {% endfor %}
                                 </tbody>
                             </table>
-                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#updateTanggalModal">
-                                Proses
-                            </button>
-                            <div class="modal" id="updateTanggalModal" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Input Tanggal Kirim</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <input type="date" name="tanggal_kirim" id="tanggal_kirim" required>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                            <button type="submit" class="btn btn-primary">Buat Rute</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <button type="submit" class="btn btn-primary">Buat Rute</button>
                         </form>
                     </div>
                 </div>
@@ -231,6 +219,42 @@
             input.setAttribute('min', dateStr);
         }
     </script>    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+        let tanggalKirim = document.getElementById("tanggal_kirim");
+        tanggalKirim.addEventListener("change", function() {
+            let selectedDate = this.value;
+            let rows = document.querySelectorAll("#customerTable tbody tr");
+            let checkboxes = document.querySelectorAll("#customerTable tbody input[type='checkbox']");
+
+            if (selectedDate === "") {
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                    checkbox.disabled = true;
+                });
+                rows.forEach(row => {
+                    row.style.display = "";
+                });
+            } else {
+                checkboxes.forEach(checkbox => {
+                    checkbox.disabled = false;
+                });
+                rows.forEach(row => {
+                    let dateCell = row.cells[1].innerText.trim();
+                    if (dateCell === selectedDate) {
+                        row.style.display = "";
+                    } else {
+                        row.style.display = "none";
+                    }
+                });
+            }
+        });
+
+        // Pemicu event change secara manual saat halaman dimuat
+        tanggalKirim.dispatchEvent(new Event('change'));
+        });
+    </script>
+    
         </main>
     </body>
 </html>
