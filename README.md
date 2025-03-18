@@ -1,1 +1,1 @@
-Website TSP Dengan algoritma Nearest Neighbor
+Website Travelling Sales Man Problem Dengan algoritma Nearest Neighbor untuk mencari jalur terdekat dari titik-titik pengantaran barang.
