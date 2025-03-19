@@ -1,7 +1,6 @@
- body{
+body{
     background-color: #787878;    
 }
-
 
 .form-box{
     height:100%;
@@ -10,16 +9,18 @@
     border: 10px;
 }
 
-p{
-    font-weight: bold ;
-}
-
 label{
     font-weight: bold;
 }
 
 .form input{
     width: 50%;
+}
+
+@media screen and (max-width: 460px) {
+    .form input{
+        width: 20%;
+    }
 }
 
 .button-login{
@@ -33,4 +34,14 @@ label{
 
 .button-login:hover{
     background-color: rgb(208, 158, 120);
+}
+
+.background-logo{
+    z-index: -1;
+    top: 10%;
+    position: absolute;
+    max-width: 40%;
+    opacity: 0.08;
+    text-align: center;
+    left: 30%;
 }

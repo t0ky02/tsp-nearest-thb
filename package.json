@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "leaflet-polylineoffset": "^1.1.1",
     "mysql2": "^3.11.3",
     "polylines": "^1.0.0"
   }
