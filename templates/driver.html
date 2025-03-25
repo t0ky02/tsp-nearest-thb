@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Favicons -->
-    <link href="assets/img/favicon.png" rel="icon">
+    <link href="static/img/logo_THB1.png" rel="icon">
     <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 
     <!-- Google Fonts -->
@@ -13,23 +13,27 @@
     <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
 
     <!--Custom CSS-->
-    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='css/index.css')}}">
     <link href="static/css/style.css" rel="stylesheet">
 
     <!-- Vendor CSS Files -->
     <link href="static/bootstrap5/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
 
     <!-- Vendor JS Files -->
     <script src="static/bootstrap5/js/bootstrap.bundle.min.js"></script>
-    <script src="static/bootstrap5/js/boostrap.min.js"></script>
-
-    <!-- Template Main JS File -->
-    <script src="static/js/main.js"></script>
     <title>Driver - PT. Tunas Harapan Baru</title>
 </head>
 <body> 
   {{ navbar|safe }}
   <main id="main" class="main">
+    {{ navbar|safe }}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+          {% for category, message in messages %}
+              <div class="flash alert alert-{{ category }}">{{ message }}</div>
+          {% endfor %}
+    {% endif %}
+    {% endwith %}
     <div class="pagetitle">
       <h1>Driver</h1>
       <nav>
@@ -53,29 +57,22 @@
                         <th >Nama Supir</th>
                         <th >No Telp</th>
                         <th >Plat Nomor</th>   
+                        <th>Action</th>
                     </tr>
                     </thead>
                     <tbody>
                     {% for index, row in enumerate(driver) %}
-                    <tr>
+                    <tr class="align-middle">
                         <td>{{index+1}}</td>
                         <td>{{row[1]}}</td>
                         <td>{{row[2]}}</td>
                         <td>{{row[3]}}</td>
                         <td>
                             <div class="mb-3">
-                                <a href="" type="button" class="btn btn-danger">Delete</a>
+                                <a href="/delete_driver/{{ row[0] }}" type="button" class="btn btn-danger" style="width: 40%;">Delete</a>
                             </div>
                             <div class="mb-3">
-                                <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editModal" 
-                                    data-id="{{ row[0] }}"
-                                    data-nama="{{ row[1] }}"
-                                    data-perusahaan="{{ row[2] }}"
-                                    data-tanggalkirim="{{ row[4] }}"
-                                    data-telp="{{ row[5] }}"
-                                    data-alamat="{{ row[6] }}">
-                                    Edit
-                                </button>
+                                <a data-id="{{ row[0] }}" class="btn btn-warning edit-btn-driver" data-bs-toggle="modal" data-bs-target="#editModal">Edit</a>
                             </div>
                         </td>
                     </tr>
@@ -85,8 +82,8 @@
             </div>
         </div>
     </div>
-     <!-- Modal -->
-     <div class="modal" id="addModal" tabindex="-1">
+    <!-- Modal -->
+    <div class="modal" id="addModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -100,12 +97,42 @@
                             <input type="text" name="nama_driver" id="nama_driver" class="form-control" required>
                         </div>
                         <div class="mb-3">
-                            <label for="namaperusahaan" class="form-label"> Plat nomor </label>
-                            <input type="text" name="namaperusahaan" id="namaperusahaan" class="form-control" required>
+                            <label for="platnomor" class="form-label">Plat Nomor</label>
+                            <input type="text" name="platnomor" id="platnomor" class="form-control" required>
                         </div>
                         <div class="mb-3">
                             <label for="telp" class="form-label">No Telp</label>
-                            <input type="telp" name="telp" id="telp" class="form-control" pattern="+62-[0-9]{3}-[0-9]{3}-[0-9]{3}" required>
+                            <input type="telp" name="telp" id="telp" class="form-control" required>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Save changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal" id="editModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Data Driver</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="/edit_driver/" method="POST" id="editFormDriver">
+                        <div class="mb-3">
+                            <label for="nama_driver" class="form-label">Nama Driver</label>
+                            <input type="text" name="nama_driver" id="edit_nama_driver" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="platnomor" class="form-label">Plat Nomor</label>
+                            <input type="text" name="platnomor" id="edit_platnomor" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="telp" class="form-label">No Telp</label>
+                            <input type="telp" name="telp" id="edit_telp_driver" class="form-control" pattern="+62-[0-9]{3}-[0-9]{3}-[0-9]{3}" required>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -118,4 +145,6 @@
     </div>
 </main><!-- End #main -->
 </body>
+    <script src="static/js/jquery.js"></script>
+    <script src="static/js/main.js"></script>
 </html>

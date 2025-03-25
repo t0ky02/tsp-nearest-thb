@@ -6,21 +6,33 @@
     <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='css/login.css')}}">
     <link rel="stylesheet" href="{{url_for('static', filename='bootstrap5/css/bootstrap.min.css')}}">
     <script src="{{ url_for('static', filename='bootstrap5/js/bootstrap.min.js')}}"></script>
+    <link href="static/css/style.css" rel="stylesheet">
+    <script src="/static/js/jquery.js"></script>
+    <script src="/static/js/main.js"></script>
     <title>Login - PT. Tunas Harapan Baru</title>
 </head>
 <body>
     <div class="container">
+        <img class="background-logo" src="static/img/logo_THB1.png" alt="">
+    </div>
+    <div class="container">
         <div class="d-flex align-items-center justify-content-center vh-100">
             <div class="row">
                 <div class="col-md-12">
-                    <h3 class="text-center">PT. Tunas Harapan Baru</h3>
+                    
                     <p class="text-center">Traveling Salesman Problem Web App</p>
-                    <p class="text-center">WELCOME - ADMIN</p>
+                    <p class="text-center"><b>WELCOME</b></p>
                 </div>
                 <div class="col-md-12">
-                    <!-- Smaller form wrapped in a centered column -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="flash alert alert-{{ category }} close">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                    {% endwith %}
                     <div class="form-box col-md-6 col-lg-4 mx-auto">
-                        <form action="{{ url_for('index') }}" method="POST">
+                        <form action="{{ url_for('login') }}" method="POST">
                             <div class="mb-3">
                                 <label for="username" class="form-label">Username</label>
                                 <input type="text" name="username" id="username" class="form-control">
@@ -33,9 +45,6 @@
                                 <button type="submit" class="btn btn-primary">Login</button>
                             </div>
                         </form>
-                    </div>
-                    <div class="text-center">
-                        Ingin login sebagai driver? <a href="/login_driver">Klik disini</a>
                     </div>
                 </div>
             </div>

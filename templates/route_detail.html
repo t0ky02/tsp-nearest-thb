@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Favicons -->
-    <link href="assets/img/favicon.png" rel="icon">
+    <link href="{{ url_for('static', filename='img/logo_THB1.png') }}" rel="icon">
     <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 
     <!-- Google Fonts -->
@@ -13,14 +13,17 @@
     <link href="https://fonts.googleapis.com/css?family=Open+Sans|Nunito|Poppins" rel="stylesheet">
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='css/index.css')}}">
-    <link href="{{url_for('static', filename='css/style.css')}}" rel="stylesheet">
+    <link href="{{url_for('static', filename='/css/style.css')}}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
 
     <!-- Vendor CSS Files -->
     <link href="{{url_for('static', filename='bootstrap5/css/bootstrap.min.css')}}" rel="stylesheet">
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <script src="{{ url_for('static', filename='js/jquery.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='bootstrap5/js/bootstrap.bundle.min.js') }}"></script>
 
     <title>Detail Rute - PT. Tunas Harapan Baru</title>
 </head>
@@ -28,111 +31,278 @@
     {{navbar|safe}}
     <main id="main" class="main">
         <div class="pagetitle">
-            <h1>Detail Rute TSP</h1>
-        </div>
-
-        <!-- Tampilkan Total Jarak -->
-        <h3>Informasi Rute</h3>
-        <p><strong>Total Jarak:</strong> {{ route.total_distance }} km</p>
-
-        <!-- Tabel Detail Rute -->
-        <h3>Detail Lokasi Pemberhentian</h3>
-        <table class="table table-striped table-bordered">
-            <thead>
-                <tr>
-                    <th>No</th>
-                    <th>Nama Customer</th>
-                    <th>Nama Perusahaan</th>
-                    <th>Alamat</th>
-                    <th>Koordinat</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for stop in route.route %}
-                <tr>
-                    <td>{{ loop.index }}</td>
-                    <td>{{ stop[1] }}</td>
-                    <td>{{ stop[2] }}</td>
-                    <td>{{ stop[6] }}</td>
-                    <td>({{ stop[7] }}, {{ stop[8] }})</td>
-                </tr>
+            <h1>Rute Detail</h1>
+            <nav>
+            <ol class="breadcrumb">
+                {% for item in breadcrumb %}
+                    {% if item.url %}
+                        <li class="breadcrumb-item"><a href="{{ item.url }}">{{ item.name }}</a></li>
+                    {% else %}
+                        <li class="breadcrumb-item active">{{ item.name }}</li>
+                    {% endif %}
                 {% endfor %}
-            </tbody>
-        </table>
+            </ol>
+            </nav>
+        </div><!-- End Page Title -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h3>Informasi Rute</h3>
+                    <table class="table table-bordered" width="50%">
+                        <tr>
+                            <th>ID Rute</th> 
+                            <td>{{route_id.id}}</td>
+                        </tr>
+                        <tr>
+                            <th>Nama Driver</th> 
+                            <td>{{route_id.nama}}</td>
+                        </tr>
+                        <tr>
+                            <th>Tanggal Buat</th>
+                            <td>{{route_id.created_at}}</td>
+                        </tr>
+                        <tr>
+                            <th>Tanggal Kirim</th> 
+                            <td>{{route_id.tanggal_kirim}}</td>
+                        </tr>
+                        <tr>
+                            <th>Total Jarak</th> 
+                            <td>{{route_id.total_distance}} Km</td>
+                        </tr>
+                        <tr>
+                            <th>List Rute</th> 
+                            <td>{{route_id.route}}</td>
+                        </tr>
+                    </table>
+                    <table class="table table-bordered" width="50%">
+                        <tr>
+                            <th>Point</th>
+                            <th>Nama Customer</th>
+                            <th>Nama Perusahaan</th>
+                            <th>No Telp</th>
+                            <th>Alamat</th>
+                        </tr>
+                        <tr>
+                            <td>0</td>  {# Start index from 1 #}
+                            <td> - </td>
+                            <td>PT Tunas Harapan Baru</td>
+                            <td>0821237741853</td>
+                            <td>Balaraja</td>
+                        </tr>
+                        {% for detail in route_detail %}
+                        <tr>
+                            <td>{{ loop.index }}</td> {# Add +1 to continue index from previous row #}
+                            <td>{{ detail.namacustomer }}</td>
+                            <td>{{ detail.namaperusahaan }}</td>
+                            <td>{{ detail.telp }}</td>
+                            <td>{{ detail.alamat }}</td>
+                        </tr>
+                        {% endfor %}
+                        <tr>
+                            <td>{{ route_detail|length + 1 }}</td> {# Ensure last index follows sequence #}
+                            <td> - </td>
+                            <td>PT Tunas Harapan Baru</td>
+                            <td>0821237741853</td>
+                            <td>Balaraja</td>
+                        </tr>
+                        
+                    </table>
+                    <div id="map" style="height: 500px; width: 100%;"></div>
+                    
+                    <!-- Script untuk Menampilkan Peta -->
+                    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+                    <script src="https://unpkg.com/leaflet-geometryutil"></script>
+                    <script src="node_module/polylines/polylineoffset.js"></script>
+                
+                    <script>
+                        
+                        var map = L.map('map').setView([-7.614529, 110.712247], 12);
 
-        <!-- Peta -->
-        <h3>Peta Rute</h3>
-        <div id="map" style="height: 500px; width: 100%;"></div>
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxZoom: 19,
+                            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                        }).addTo(map);
 
-        <!-- Script untuk Menampilkan Peta -->
-        <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+                        const routes = {{ route_id.route | tojson }};
+                        const route_detail = {{ route_detail | tojson }};
+                        const distance_seg = {{ distances | tojson}} 
+                        const route_geometry = {{ route_geometry | safe }}; // Data rute dari OpenRouteService (sudah dalam format JSON)
+                        
+                        // Daftar 20 warna tetap
+                        const fixedColors = [
+                            'red', 'blue', 'green', 'purple', 'brown', 'cyan', 'magenta', 'yellow',
+                            'lime', 'teal', 'indigo', 'violet', 'gold', 'coral', 'skyblue', 'salmon',
+                            'khaki', 'darkgreen', '#FF0000', '#0000FF', '#00FF00', '#FFFF00', '#FF00FF',
+                            '#00FFFF', '#FFA500', '#800080', '#FFD700', '#A52A2A', '#FFC0CB', '#40E0D0',
+                            '#9370DB', '#008080', '#4B0082', '#EE82EE', '#F08080', '#F5F5DC', '#BDB76B',
+                            '#D2691E', '#8B4513', '#2F4F4F', '#696969', '#778899'
+                        ];
 
-        <script>
-            // Inisialisasi peta Leaflet
-            var map = L.map('map').setView([{{ route.start_latitude }}, {{ route.start_longitude }}], 10); // Set koordinat awal dengan titik perusahaan
+                        let colorIndex = 0; // Indeks untuk melacak warna yang digunakan
 
-            // Tambahkan layer OpenStreetMap
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            }).addTo(map);
-
-            // Koordinat titik awal (perusahaan)
-            var start = [{{ route.start_latitude }}, {{ route.start_longitude }}]; // Koordinat perusahaan
-
-            // Tambahkan marker untuk titik awal perusahaan
-            var startMarker = L.marker(start).addTo(map)
-                .bindPopup('Perusahaan Anda')
-                .openPopup();
-
-            // Koordinat pelanggan yang dipilih
-            var customerCoordinates = [
-                {% for stop in route.route %}
-                    [{{ stop[7] }}, {{ stop[8] }}], // latitude, longitude
-                {% endfor %}
-            ];
-
-            // Menambahkan marker untuk setiap pelanggan
-            customerCoordinates.forEach(function(coord) {
-                console.log('Adding marker for customer: ', coord); // Debugging: Cek koordinat pelanggan
-                L.marker(coord).addTo(map)
-                    .bindPopup('Pelanggan: ' + coord);
-            });
-
-            // Fungsi untuk menghitung rute antara titik awal (perusahaan) dan titik pelanggan
-            function calculateRoute(start, end) {
-                var apiKey = '5b3ce3597851110001cf62485c8ef8997b5a46b6b0cf38fca040016e'; // Ganti dengan API key OpenRouteService Anda
-                var url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${apiKey}&start=${start[1]},${start[0]}&end=${end[1]},${end[0]}`;
-
-                fetch(url)
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log('OpenRouteService Response: ', data); // Debugging: Cek response dari API
-                        if (data.features && data.features.length > 0) {
-                            var route = data.features[0].geometry.coordinates;
-                            var routeLatLng = route.map(coord => [coord[1], coord[0]]);
-
-                            // Tambahkan polyline ke peta
-                            var polyline = L.polyline(routeLatLng, { color: 'blue', weight: 4 }).addTo(map);
-                            map.fitBounds(polyline.getBounds());
-                        } else {
-                            console.error('No route found!');
+                        function getFixedColor() {
+                            if (colorIndex >= fixedColors.length) {
+                                colorIndex = 0; // Kembali ke awal jika semua warna telah digunakan
+                            }
+                            return fixedColors[colorIndex++];
                         }
-                    })
-                    .catch(error => console.error('Error:', error));
-            }
 
-            // Jika ada pelanggan yang dipilih, hitung rutenya
-            {% if route.route %}
-                {% for stop in route.route %}
-                    var customerCoord = [{{ stop[7] }}, {{ stop[8] }}]; // Koordinat pelanggan
-                    calculateRoute(start, customerCoord); // Hitung rute antara perusahaan dan pelanggan
-                {% endfor %}
-            {% endif %}
-        </script>            
+                        function createArrowSpan(angle, color) {
+                            return `<span style="display: inline-block; transform: rotate(${angle}deg); color: ${color}; font-size: 16px;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="50" height="30" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" stroke="black" stroke-width="1"/>
+                                        </svg>
+                                    </span>`;
+                        }
+                        function calculateAngle(latlng1, latlng2) {
+                            const y = latlng2.lat - latlng1.lat;
+                            const x = latlng2.lng - latlng1.lng;
+                            let angle = Math.atan2(y, x) * 180 / Math.PI;
+                            return angle;
+                        }
 
-        <!-- Tombol Kembali -->
-        <a href="{{ url_for('tsp') }}" class="btn btn-primary mt-3">Kembali ke Daftar Rute</a>
+                        if (routes.length > 1) {
+                            for (let i = 0; i < routes.length - 1; i++) {
+                                let start = routes[i];
+                                let end = routes[i + 1];
+                                let segment = findSegment(start, end, route_geometry);
+
+                                if (segment && segment.length > 1) {
+                                    let color = getFixedColor();
+                                    let polyline = L.polyline(segment.map(coord => [coord[1], coord[0]]), {
+                                        color: color,
+                                        fillOpacity: 1,
+                                        dashArray: '10, 20',
+                                        weight: 5
+                                    }).addTo(map);
+
+                                    let distance = distance_seg[i];
+                                    let midpoint = L.GeometryUtil.interpolateOnLine(map, polyline.getLatLngs(), 0.5);
+
+                                    // Hitung sudut
+                                    let latlng1 = L.latLng(start[0], start[1]);
+                                    let latlng2 = L.latLng(end[0], end[1]);
+                                    let angle = calculateAngle(latlng1, latlng2);
+
+                                    // Buat span dengan panah
+                                    let arrowSpan = createArrowSpan(angle, color);
+
+                                    L.marker(midpoint.latLng, {
+                                        icon: L.divIcon({
+                                            className: 'distance-label',
+                                            html: `
+                                                <span style="color: white; font-weight: bold; background:${color};">
+                                                    ${distance.toFixed(1)} Km 
+                                                </span><br>
+                                                <span style="font-size: 12px; font-weight: bold; color: white; background:${color};">
+                                                    Point ${i} - Point ${i + 1}
+                                                </span><br>
+                                                <span style="color: white; font-weight: bold;">
+                                                    ${arrowSpan} 
+                                                </span>
+                                            `,
+                                            iconSize: [150, 50] // Perbesar ukuran label agar panah terlihat
+                                        })
+                                    }).addTo(map);
+
+                                } else {
+                                    console.error(`Gagal menemukan segmen antara ${start} dan ${end}`);
+                                }
+                            }
+                            console.log(route_geometry);
+                        } else {
+                            console.error("Gagal memuat rute");
+                        }
+
+                        // Tambahkan marker untuk setiap titik dalam rute
+                        routes.forEach((coord, index) => {
+                            let marker = L.marker([coord[0], coord[1]]).addTo(map);
+                            
+                                marker.bindPopup('Titik Awal: Perusahaan Anda').openPopup();
+                            
+                            if (index >= 1) {
+                                const customer = route_detail[index - 1];
+                                if (customer) {
+                                    marker.bindPopup(
+                                        `<b>Point ${index}</b><br>
+                                        ${customer.namacustomer}<br>
+                                        ${customer.namaperusahaan}<br>
+                                        ${customer.alamat}`
+                                    ).openPopup();
+                                }
+                            }
+                        });
+
+                        map.fitBounds(L.polyline(route_geometry.map(coord => [coord[1], coord[0]])).getBounds());
+
+                        function findSegment(start, end, routeGeometry, tolerance = 0.001) {
+                            let startIndex = -1;
+                            let endIndex = -1;
+                            let segment = [];
+
+                            function distance(coord1, coord2) {
+                                return Math.sqrt(Math.pow(coord1[0] - coord2[0], 2) + Math.pow(coord1[1] - coord2[1], 2));
+                            }
+
+                            // Cari indeks awal
+                            let minStartDistance = Infinity;
+                            for (let i = 0; i < routeGeometry.length; i++) {
+                                let dist = distance([routeGeometry[i][1], routeGeometry[i][0]], start);
+                                if (dist < minStartDistance) {
+                                    minStartDistance = dist;
+                                    if (dist < tolerance) {
+                                        startIndex = i;
+                                    }
+                                }
+                            }
+
+                            // Cari indeks akhir
+                            let minEndDistance = Infinity;
+                            for (let i = routeGeometry.length - 1; i >= 0; i--) {
+                                let dist = distance([routeGeometry[i][1], routeGeometry[i][0]], end);
+                                if (dist < minEndDistance) {
+                                    minEndDistance = dist;
+                                    if (dist < tolerance) {
+                                        endIndex = i;
+                                    }
+                                }
+                            }
+
+                            // Jika indeks ditemukan, buat segmen
+                            if (startIndex !== -1 && endIndex !== -1) {
+                                if (startIndex < endIndex) {
+                                    segment = routeGeometry.slice(startIndex, endIndex + 1);
+                                } else {
+                                    segment = routeGeometry.slice(endIndex, startIndex + 1).reverse();
+                                }
+                            }
+
+                            return segment;
+                        }
+                    </script>
+                    <style>
+                        .distance-label {
+                            font-size: 12px;
+                            font-weight: bold;
+                            text-align: center;
+                            white-space: nowrap; /* Prevents text from breaking into multiple lines */
+                        }
+                        .distance-label span{
+                            text-shadow:
+                                -1px -1px 0 #000,
+                                0   -1px 0 #000,
+                                1px -1px 0 #000,
+                                1px  0   0 #000,
+                                1px  1px 0 #000,
+                                0    1px 0 #000,
+                                -1px  1px 0 #000,
+                                -1px  0   0 #000;
+                        }
+
+                    </style>
+                </div>
+            </div>
+        </div>
     </main>
 </body>
 </html>

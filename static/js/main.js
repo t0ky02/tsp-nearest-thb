@@ -187,79 +187,7 @@
   const useDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const isSmallScreen = window.matchMedia('(max-width: 1023.5px)').matches;
 
-  tinymce.init({
-    selector: 'textarea.tinymce-editor',
-    plugins: 'preview importcss searchreplace autolink autosave save directionality code visualblocks visualchars fullscreen image link media codesample table charmap pagebreak nonbreaking anchor insertdatetime advlist lists wordcount help charmap quickbars emoticons accordion',
-    editimage_cors_hosts: ['picsum.photos'],
-    menubar: 'file edit view insert format tools table help',
-    toolbar: "undo redo | accordion accordionremove | blocks fontfamily fontsize | bold italic underline strikethrough | align numlist bullist | link image | table media | lineheight outdent indent| forecolor backcolor removeformat | charmap emoticons | code fullscreen preview | save print | pagebreak anchor codesample | ltr rtl",
-    autosave_ask_before_unload: true,
-    autosave_interval: '30s',
-    autosave_prefix: '{path}{query}-{id}-',
-    autosave_restore_when_empty: false,
-    autosave_retention: '2m',
-    image_advtab: true,
-    link_list: [{
-        title: 'My page 1',
-        value: 'https://www.tiny.cloud'
-      },
-      {
-        title: 'My page 2',
-        value: 'http://www.moxiecode.com'
-      }
-    ],
-    image_list: [{
-        title: 'My page 1',
-        value: 'https://www.tiny.cloud'
-      },
-      {
-        title: 'My page 2',
-        value: 'http://www.moxiecode.com'
-      }
-    ],
-    image_class_list: [{
-        title: 'None',
-        value: ''
-      },
-      {
-        title: 'Some class',
-        value: 'class-name'
-      }
-    ],
-    importcss_append: true,
-    file_picker_callback: (callback, value, meta) => {
-      /* Provide file and text for the link dialog */
-      if (meta.filetype === 'file') {
-        callback('https://www.google.com/logos/google.jpg', {
-          text: 'My text'
-        });
-      }
-
-      /* Provide image and alt text for the image dialog */
-      if (meta.filetype === 'image') {
-        callback('https://www.google.com/logos/google.jpg', {
-          alt: 'My alt text'
-        });
-      }
-
-      /* Provide alternative source and posted for the media dialog */
-      if (meta.filetype === 'media') {
-        callback('movie.mp4', {
-          source2: 'alt.ogg',
-          poster: 'https://www.google.com/logos/google.jpg'
-        });
-      }
-    },
-    height: 600,
-    image_caption: true,
-    quickbars_selection_toolbar: 'bold italic | quicklink h2 h3 blockquote quickimage quicktable',
-    noneditable_class: 'mceNonEditable',
-    toolbar_mode: 'sliding',
-    contextmenu: 'link image table',
-    skin: useDarkMode ? 'oxide-dark' : 'oxide',
-    content_css: useDarkMode ? 'dark' : 'default',
-    content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:16px }'
-  });
+/*tinymace*/
 
   /**
    * Initiate Bootstrap validation check
@@ -320,8 +248,9 @@
 
 document.addEventListener("DOMContentLoaded", () => {
   const links = document.querySelectorAll('.sidebar-nav .nav-link');
-  const currentPath = window.location.pathname.split('/').pop(); // Mendapatkan path terakhir dari URL
-  
+  //const currentPath = window.location.pathname.split('/').pop(); // Mendapatkan path terakhir dari URL
+  const currentPath = window.location.pathname.replace(/^\//, '').replace(/\/$/, ''); // Hilangkan slash awal & akhir
+
   links.forEach(link => {
       if (link.getAttribute('data-href') === currentPath) {
           link.classList.remove('collapsed');
@@ -333,24 +262,95 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// Event listener untuk membuka modal edit
-$('#editModal').on('show.bs.modal', function (event) {
-  var button = $(event.relatedTarget); // Tombol yang diklik
-  var id = button.data('id');
-  var nama = button.data('nama');
-  var perusahaan = button.data('perusahaan');
-  var tanggalkirim = button.data('tanggalkirim');
-  var telp = button.data('telp');
-  var alamat = button.data('alamat');
+//EDIT DRIVER
 
-  // Isi data ke input modal
-  var modal = $(this);
-  modal.find('#namacustomer').val(nama);
-  modal.find('#namaperusahaan').val(perusahaan);
-  modal.find('#tanggalkirim').val(tanggalkirim);
-  modal.find('#telp').val(telp);
-  modal.find('#alamat').val(alamat);
-  modal.find('form').attr('action', '/edit/' + id);  // Update action form untuk mengarah ke customer yang benar
+
+// EDIT CUSTOMER
+document.addEventListener("DOMContentLoaded", function() {
+  // Ambil semua tombol edit
+  const editButtons = document.querySelectorAll(".edit-btn");
+
+  editButtons.forEach(button => {
+      button.addEventListener("click", function() {
+          const customerId = this.getAttribute("data-id");
+          console.log("data-id")
+          // Ambil data dari server
+          console.log("Fetching data..."); // Debugging
+
+          fetch(`/getedit/${customerId}`)
+              .then(response => response.json())
+              .then(data => {
+                console.log("Fetched Data:", data);
+
+                // Pastikan elemen ada sebelum diisi
+                // Konversi format tanggal dari server ke format yang valid untuk input HTML
+                const formatDatetimeLocal = (datetime) => {
+                    const date = new Date(datetime);
+                    return date.toISOString().slice(0, 16); // Format: "YYYY-MM-DDTHH:mm"
+                };
+
+                const formatDate = (dateString) => {
+                    const date = new Date(dateString);
+                    return date.toISOString().split("T")[0]; // Format: "YYYY-MM-DD"
+                };
+
+                  document.getElementById("editForm").setAttribute("action", `/edit/${data.id}`);
+                  document.getElementById("edit_namacustomer").value = data.namacustomer;
+                  document.getElementById("edit_namaperusahaan").value = data.namaperusahaan;
+                  document.getElementById("edit_tanggalinput").value = formatDatetimeLocal(data.tanggalinput);
+                  document.getElementById("edit_tanggal_kirim").value = formatDate(data.tanggalkirim);
+                  document.getElementById("edit_telp").value = data.telp;
+                  document.getElementById("edit_alamat").value = data.alamat;
+                  document.getElementById("edit_latitude").value = data.latitude;
+                  document.getElementById("edit_longitude").value = data.longitude;
+
+                  //updateMap(data.latitude, data.longitude);
+              })
+              .catch(error => console.error("Error fetching customer data:", error));
+      });
+  });
+  
 });
 
+document.addEventListener("DOMContentLoaded", function() {
+  // Ambil semua tombol edit
+  const editButtons = document.querySelectorAll(".edit-btn-driver");
+
+  editButtons.forEach(button => {
+      button.addEventListener("click", function() {
+          const driverId = this.getAttribute("data-id");
+          console.log(driverId)
+          // Ambil data dari server
+          console.log("Fetching data..."); // Debugging
+
+          fetch(`/getedit_driver/${driverId}`)
+              .then(response => response.json())
+              .then(data => {
+                console.log("Fetched Data:", data);
+
+                // Pastikan elemen ada sebelum diisi
+                // Konversi format tanggal dari server ke format yang valid untuk input HTML
+                  document.getElementById("editFormDriver").setAttribute("action", `/edit_driver/${data.id}`);
+                  document.getElementById("edit_nama_driver").value = data.nama_driver;
+                  document.getElementById("edit_telp_driver").value = data.telp;
+                  document.getElementById("edit_platnomor").value = data.platnomor;
+
+                  //updateMap(data.latitude, data.longitude);
+              })
+              .catch(error => console.error("Error fetching customer data:", error));
+      });
+  });
+  
+});
+
+setTimeout(function() {
+  var flashMessages = document.getElementsByClassName('flash');
+  
+  // Periksa apakah flashMessages ada sebelum mengaksesnya
+  if (flashMessages.length > 0) {
+      flashMessages[0].style.transition = "opacity 0.5s ease";
+      flashMessages[0].style.opacity = "0";
+      setTimeout(() => flashMessages[0].remove(), 500);
+  }
+}, 5000);
 

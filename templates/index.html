@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="eng">
 <head>
-    <meta charset="UTF-8">
+  <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Favicons -->
-    <link href="assets/img/favicon.png" rel="icon">
+    <link href="static/img/logo_THB1.png" rel="icon">
     <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 
     <!-- Google Fonts -->
@@ -13,23 +13,29 @@
     <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
 
     <!--Custom CSS-->
-    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='css/index.css')}}">
     <link href="static/css/style.css" rel="stylesheet">
 
     <!-- Vendor CSS Files -->
     <link href="static/bootstrap5/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
 
     <!-- Vendor JS Files -->
     <script src="static/bootstrap5/js/bootstrap.bundle.min.js"></script>
-    <script src="static/bootstrap5/js/boostrap.min.js"></script>
 
     <!-- Template Main JS File -->
-    <script src="static/js/main.js"></script>
-    <title>Home - PT. Tunas Harapan Baru</title>
+    
+    <title>Beranda - PT. Tunas Harapan Baru</title>
 </head>
 <body> 
-  {{ navbar|safe }}
   <main id="main" class="main">
+    {{ navbar|safe }}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+          {% for category, message in messages %}
+              <div class="flash alert alert-{{ category }}">{{ message }}</div>
+          {% endfor %}
+    {% endif %}
+    {% endwith %}
     <div class="pagetitle">
       <h1>Dashboard</h1>
       <nav>
@@ -42,7 +48,6 @@
 
     <section class="section dashboard">
       <div class="row">
-
         <!-- Left side columns -->
         <div class="col-lg-8">
           <div class="row">
@@ -67,6 +72,7 @@
   </footer><!-- End Footer -->
 
   <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
-  
 </body>
+    <script src="static/js/jquery.js"></script>
+    <script src="static/js/main.js"></script>
 </html>
